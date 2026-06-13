@@ -1,8 +1,8 @@
 package com.jobportal.talenthub.service.impl;
 
+import com.jobportal.talenthub.dto.UserPatchDto;
 import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
-import com.jobportal.talenthub.entity.Role;
 import com.jobportal.talenthub.entity.User;
 import com.jobportal.talenthub.exception.ResourceNotFoundException;
 import com.jobportal.talenthub.mapper.UserMapper;
@@ -11,7 +11,6 @@ import com.jobportal.talenthub.service.UserService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -48,36 +47,67 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponseDto patchUser(Long id, Map<String, Object> updates) {
-
+    public UserResponseDto patchUser(Long id, UserPatchDto userPatchDto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User Not Found with id : " + id)
-                );
+                        new ResourceNotFoundException("User Not Found with id : " + id));
 
-        if (updates.containsKey("firstName")) {
-            user.setFirstName(updates.get("firstName").toString());
+        if (userPatchDto.firstName() != null) {
+            user.setFirstName(userPatchDto.firstName());
         }
 
-        if (updates.containsKey("lastName")) {
-            user.setLastName(updates.get("lastName").toString());
+        if (userPatchDto.lastName() != null) {
+            user.setLastName(userPatchDto.lastName());
         }
 
-        if (updates.containsKey("email")) {
-            user.setEmail(updates.get("email").toString());
+        if (userPatchDto.email() != null) {
+            user.setEmail(userPatchDto.email());
         }
 
-        if (updates.containsKey("password")) {
-            user.setPassword(updates.get("password").toString());
+        if (userPatchDto.password() != null) {
+            user.setPassword(userPatchDto.password());
         }
 
-        if (updates.containsKey("role")) {
-            user.setRole(Role.valueOf((String) updates.get("role")));
+        if (userPatchDto.role() != null) {
+            user.setRole(userPatchDto.role());
         }
 
         User updatedUser = userRepository.save(user);
+
         return UserMapper.toResponseDto(updatedUser);
     }
+
+//    @Override
+//    public UserResponseDto patchUser(Long id, Map<String, Object> updates) {
+//
+//        User user = userRepository.findById(id)
+//                .orElseThrow(() ->
+//                        new ResourceNotFoundException("User Not Found with id : " + id)
+//                );
+//
+//        if (updates.containsKey("firstName")) {
+//            user.setFirstName(updates.get("firstName").toString());
+//        }
+//
+//        if (updates.containsKey("lastName")) {
+//            user.setLastName(updates.get("lastName").toString());
+//        }
+//
+//        if (updates.containsKey("email")) {
+//            user.setEmail(updates.get("email").toString());
+//        }
+//
+//        if (updates.containsKey("password")) {
+//            user.setPassword(updates.get("password").toString());
+//        }
+//
+//        if (updates.containsKey("role")) {
+//            user.setRole(Role.valueOf((String) updates.get("role")));
+//        }
+//
+//        User updatedUser = userRepository.save(user);
+//        return UserMapper.toResponseDto(updatedUser);
+//    }
 
     @Override
     public List<UserResponseDto> getAllUsers() {

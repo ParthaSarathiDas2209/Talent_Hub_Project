@@ -1,5 +1,6 @@
 package com.jobportal.talenthub.controller;
 
+import com.jobportal.talenthub.dto.UserPatchDto;
 import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 import com.jobportal.talenthub.service.UserService;
@@ -9,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -50,8 +50,13 @@ public class UserController {
         return ResponseEntity.ok("User have been Deleted Successfully!");
     }
 
+//    @PatchMapping("/{id}")
+//    public ResponseEntity<UserResponseDto> patchUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+//        return ResponseEntity.ok(userService.patchUser(id, updates));
+//    }
+
     @PatchMapping("/{id}")
-    public ResponseEntity<UserResponseDto> patchUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
-        return ResponseEntity.ok(userService.patchUser(id, updates));
+    public ResponseEntity<UserResponseDto> patchUser(@PathVariable Long id, @RequestBody UserPatchDto userPatchDto) {
+        return ResponseEntity.ok(userService.patchUser(id, userPatchDto));
     }
 }
