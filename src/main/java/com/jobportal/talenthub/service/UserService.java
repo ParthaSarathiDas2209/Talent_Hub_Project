@@ -4,11 +4,14 @@ import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 
 import java.util.List;
+import java.util.Map;
 
 public interface UserService {
     UserResponseDto createUser(UserRequestDto userRequestDto);
 
     UserResponseDto updateUser(Long id, UserRequestDto userRequestDto);
+
+    UserResponseDto patchUser(Long id, Map<String, Object> updates);
 
     List<UserResponseDto> getAllUsers();
 

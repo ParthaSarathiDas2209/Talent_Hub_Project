@@ -2,6 +2,7 @@ package com.jobportal.talenthub.service.impl;
 
 import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
+import com.jobportal.talenthub.entity.Role;
 import com.jobportal.talenthub.entity.User;
 import com.jobportal.talenthub.exception.ResourceNotFoundException;
 import com.jobportal.talenthub.mapper.UserMapper;
@@ -10,6 +11,7 @@ import com.jobportal.talenthub.service.UserService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -42,6 +44,38 @@ public class UserServiceImpl implements UserService {
 
         User updatedUser = userRepository.save(user);
 
+        return UserMapper.toResponseDto(updatedUser);
+    }
+
+    @Override
+    public UserResponseDto patchUser(Long id, Map<String, Object> updates) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User Not Found with id : " + id)
+                );
+
+        if (updates.containsKey("firstName")) {
+            user.setFirstName(updates.get("firstName").toString());
+        }
+
+        if (updates.containsKey("lastName")) {
+            user.setLastName(updates.get("lastName").toString());
+        }
+
+        if (updates.containsKey("email")) {
+            user.setEmail(updates.get("email").toString());
+        }
+
+        if (updates.containsKey("password")) {
+            user.setPassword(updates.get("password").toString());
+        }
+
+        if (updates.containsKey("role")) {
+            user.setRole(Role.valueOf((String) updates.get("role")));
+        }
+
+        User updatedUser = userRepository.save(user);
         return UserMapper.toResponseDto(updatedUser);
     }
 

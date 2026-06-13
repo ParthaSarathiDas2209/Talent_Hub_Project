@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -49,4 +50,8 @@ public class UserController {
         return ResponseEntity.ok("User have been Deleted Successfully!");
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserResponseDto> patchUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+        return ResponseEntity.ok(userService.patchUser(id, updates));
+    }
 }
