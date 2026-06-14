@@ -48,7 +48,7 @@ public class Job {
     private User recruiter;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
@@ -57,4 +57,6 @@ public class Job {
 
 //    @OneToMany(mappedBy = "job")
 //    private List<Application> applications;
+
+
 }
