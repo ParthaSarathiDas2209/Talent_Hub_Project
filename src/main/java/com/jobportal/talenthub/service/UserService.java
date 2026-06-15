@@ -7,6 +7,7 @@ import com.jobportal.talenthub.dto.UserResponseDto;
 import java.util.List;
 
 public interface UserService {
+
     UserResponseDto createUser(UserRequestDto userRequestDto);
 
     UserResponseDto updateUser(Long id, UserRequestDto userRequestDto);
