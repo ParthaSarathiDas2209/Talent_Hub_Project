@@ -1,5 +1,6 @@
 package com.jobportal.talenthub.controller;
 
+import com.jobportal.talenthub.dto.JobPatchDto;
 import com.jobportal.talenthub.dto.JobRequestDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.service.JobService;
@@ -50,6 +51,11 @@ public class JobController {
     @GetMapping
     public ResponseEntity<List<JobResponseDto>> getAllJobs() {
         return ResponseEntity.ok(jobService.getAllJobs());
+    }
+    
+    @PatchMapping("/{id}")
+    public ResponseEntity<JobResponseDto> patchJob(@PathVariable Long id, @Valid @RequestBody JobPatchDto jobPatchDto) {
+        return ResponseEntity.ok(jobService.patchJob(id, jobPatchDto));
     }
 
 }

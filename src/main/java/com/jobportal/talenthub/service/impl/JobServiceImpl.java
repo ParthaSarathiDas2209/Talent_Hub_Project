@@ -1,5 +1,6 @@
 package com.jobportal.talenthub.service.impl;
 
+import com.jobportal.talenthub.dto.JobPatchDto;
 import com.jobportal.talenthub.dto.JobRequestDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.entity.Job;
@@ -66,6 +67,47 @@ public class JobServiceImpl implements JobService {
                 .stream()
                 .map(JobMapper::toResponseDto)
                 .toList();
+    }
+
+    @Override
+    public JobResponseDto patchJob(Long id, JobPatchDto jobPatchDto) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Job not found with id : " + id)
+                );
+
+
+        if (jobPatchDto.title() != null) {
+            job.setTitle(jobPatchDto.title());
+        }
+
+        if (jobPatchDto.description() != null) {
+            job.setDescription(jobPatchDto.description());
+        }
+
+        if (jobPatchDto.companyName() != null) {
+            job.setCompanyName(jobPatchDto.companyName());
+        }
+
+        if (jobPatchDto.companyEmail() != null) {
+            job.setCompanyEmail(jobPatchDto.companyEmail());
+        }
+
+        if (jobPatchDto.companyPhone() != null) {
+            job.setCompanyPhone(jobPatchDto.companyPhone());
+        }
+
+        if (jobPatchDto.location() != null) {
+            job.setLocation(jobPatchDto.location());
+        }
+
+        if (jobPatchDto.salary() != null) {
+            job.setSalary(jobPatchDto.salary());
+        }
+
+        Job savedJob = jobRepository.save(job);
+        return JobMapper.toResponseDto(savedJob);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.jobportal.talenthub.service;
 
+import com.jobportal.talenthub.dto.JobPatchDto;
 import com.jobportal.talenthub.dto.JobRequestDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
 
@@ -13,8 +14,8 @@ public interface JobService {
 
     List<JobResponseDto> getAllJobs();
 
-//    JobResponseDto patchJob(Long id, JobPatchDto jobPatchDto);
-    
+    JobResponseDto patchJob(Long id, JobPatchDto jobPatchDto);
+
     JobResponseDto getJobById(Long id);
 
     void deleteJob(Long id);
