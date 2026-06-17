@@ -47,7 +47,7 @@ public class ApplicationController {
         return ResponseEntity.ok("Application has been deleted successfully ! ");
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{applicationId}/status")
     public ResponseEntity<ApplicationResponseDto> updateApplicationStatus(@PathVariable Long applicationId,
                                                                           @RequestParam ApplicationStatus applicationStatus) {
 
