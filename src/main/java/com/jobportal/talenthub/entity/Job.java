@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -55,8 +56,8 @@ public class Job {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-//    @OneToMany(mappedBy = "job")
-//    private List<Application> applications;
+    @OneToMany(mappedBy = "job")
+    private List<Application> applications;
 
 
 }
