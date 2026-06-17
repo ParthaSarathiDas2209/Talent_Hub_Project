@@ -3,6 +3,7 @@ package com.jobportal.talenthub.controller;
 
 import com.jobportal.talenthub.dto.ApplicationRequestDto;
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
+import com.jobportal.talenthub.entity.ApplicationStatus;
 import com.jobportal.talenthub.service.ApplicationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,5 +45,15 @@ public class ApplicationController {
     public ResponseEntity<String> deleteApplicationById(@PathVariable Long id) {
         applicationService.deleteApplication(id);
         return ResponseEntity.ok("Application has been deleted successfully ! ");
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApplicationResponseDto> updateApplicationStatus(@PathVariable Long applicationId,
+                                                                          @RequestParam ApplicationStatus applicationStatus) {
+
+        ApplicationResponseDto updatedApplication =
+                applicationService.updateApplicationStatus(applicationId, applicationStatus);
+
+        return ResponseEntity.ok(updatedApplication);
     }
 }

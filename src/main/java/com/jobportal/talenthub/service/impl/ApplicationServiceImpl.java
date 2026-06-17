@@ -97,4 +97,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         applicationRepository.delete(application);
     }
+
+    @Override
+    public ApplicationResponseDto updateApplicationStatus(Long applicationId, ApplicationStatus applicationStatus) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Application not found with id : "
+                                + applicationId
+                        )
+                );
+
+        application.setStatus(applicationStatus);
+        Application updatedApplication = applicationRepository.save(application);
+
+        return ApplicationMapper.toApplicationResponseDto(updatedApplication);
+    }
 }
