@@ -5,10 +5,11 @@ import com.jobportal.talenthub.dto.LoginRequestDto;
 import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 import com.jobportal.talenthub.entity.User;
-import com.jobportal.talenthub.exception.ResourceNotFoundException;
+import com.jobportal.talenthub.exception.InvalidCredentialsException;
 import com.jobportal.talenthub.mapper.UserMapper;
 import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.AuthService;
+import com.jobportal.talenthub.service.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +18,12 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -43,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userRepository.findByEmail(loginRequestDto.email())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
+                        new InvalidCredentialsException(
                                 "Invalid e-mail or password")
                 );
 
@@ -53,10 +56,10 @@ public class AuthServiceImpl implements AuthService {
         );
 
         if (!isPasswordValid) {
-            throw new RuntimeException("Invalid password");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        String token = "dummy-token";
+        String token = jwtService.generateToken(user.getEmail());
 
         return new AuthResponseDto(
                 token,

@@ -15,14 +15,24 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .httpBasic(Customizer.withDefaults());
+//        http
+//                .csrf(csrf -> csrf.disable())
+//                .authorizeHttpRequests(auth -> auth
+//                        .requestMatchers("/api/auth/**").permitAll()
+//                        .anyRequest().authenticated()
+//                )
+//                .httpBasic(Customizer.withDefaults());
 
+
+        http
+                .csrf(customizer -> customizer.disable());
+//              .authorizeHttpRequests(requests -> requests.anyRequest().authenticated());
+//        http.authorizeHttpRequests(auth -> auth.requestMatchers("/test-user").permitAll()
+        http.authorizeHttpRequests(auth ->
+                auth.requestMatchers("/api/auth/**").permitAll()
+                        .anyRequest().authenticated());
+        http.formLogin(Customizer.withDefaults());
+        http.httpBasic(Customizer.withDefaults());
         return http.build();
     }
 
