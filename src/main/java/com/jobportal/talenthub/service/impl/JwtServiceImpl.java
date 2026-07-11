@@ -1,6 +1,7 @@
 package com.jobportal.talenthub.service.impl;
 
 import com.jobportal.talenthub.service.JwtService;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,108 +12,95 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-@Service // Marks this class as a Spring Bean so it can be injected where needed.
+@Service // Registers JwtServiceImpl as a Spring Bean.
 public class JwtServiceImpl implements JwtService {
 
-    // Reads the secret key from application.properties
+    // Secret key used to sign and verify JWT tokens.
+    // Loaded from application.properties.
     @Value("${jwt.secret}")
     private String secret;
 
-    // Reads the token expiration time (in milliseconds) from application.properties
+    // JWT expiration time (in milliseconds).
+    // Loaded from application.properties.
     @Value("${jwt.expiration}")
     private long expiration;
+
+    // Converts the secret String into a SecretKey object.
+    // This key is used for both generating and verifying JWT signatures.
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
+    }
+
+    // Parses the JWT, verifies its signature,
+    // and returns all claims (payload) stored inside it.
+    private Claims extractAllClaims(String token) {
+        return Jwts
+                .parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
 
     @Override
     public String generateToken(String email) {
 
-        // Converts the secret String into a SecretKey object.
-        // JWT uses this SecretKey to digitally sign the token.
-        SecretKey key = Keys.hmacShaKeyFor(
-                secret.getBytes(StandardCharsets.UTF_8)
-        );
-
-        // Starts building the JWT
+        // Builds a new JWT containing the user's email,
+        // issued time, expiration time, and digital signature.
         return Jwts.builder()
 
-                // Stores the identity (subject) of the token.
-                // Here we are storing the user's email.
+                // Stores the user's identity.
                 .subject(email)
 
-                // Stores the current date & time when the token was created.
+                // Stores the token creation time.
                 .issuedAt(new Date())
 
-                // Sets the expiry time of the token.
-                // Current Time + expiration (e.g., 24 hours)
+                // Sets token expiry time.
                 .expiration(
                         new Date(System.currentTimeMillis() + expiration)
                 )
 
-                // Digitally signs the token using our SecretKey.
-                // This prevents anyone from modifying the token.
-                .signWith(key)
+                // Digitally signs the JWT using the SecretKey.
+                .signWith(getSigningKey())
 
-                // Converts the JWT Builder into the final compact JWT String.
+                // Generates the final compact JWT String.
                 .compact();
     }
 
     @Override
     public String extractEmail(String token) {
 
-        // Create the same SecretKey that was used while generating the JWT.
-        // This key is required to verify the JWT's digital signature.
-        SecretKey key = Keys.hmacShaKeyFor(
-                secret.getBytes(StandardCharsets.UTF_8)
-        );
-
-        return Jwts
-
-                // Creates a JWT parser for reading JWT tokens.
-                .parser()
-
-                // Verifies that the JWT signature matches our SecretKey.
-                // If someone modified the token, verification fails here.
-                .verifyWith(key)
-
-                // Builds the parser.
-                .build()
-
-                // Parses the signed JWT and extracts its Claims.
-                .parseSignedClaims(token)
-
-                // Retrieves the Payload (Claims) from the JWT.
-                .getPayload()
-
-                // Returns the Subject (sub), which is the user's email.
-                .getSubject();
+        // Returns the email (subject) stored inside the JWT.
+        return extractAllClaims(token).getSubject();
     }
 
     @Override
     public Date extractExpiration(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(
-                secret.getBytes(StandardCharsets.UTF_8)
-        );
 
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getExpiration();
+        // Returns the token expiration date.
+        return extractAllClaims(token).getExpiration();
     }
 
     @Override
     public boolean isTokenExpired(String token) {
 
+        // Returns true if the current time
+        // is after the token's expiration time.
         return extractExpiration(token).before(new Date());
 
     }
 
     @Override
     public boolean isTokenValid(String token, UserDetails userDetails) {
+
+        // Token is valid only if:
+        // 1. Email inside JWT matches logged-in user.
+        // 2. Token has not expired.
         return extractEmail(token)
                 .equals(userDetails.getUsername())
                 && !isTokenExpired(token);
     }
-
 
 }

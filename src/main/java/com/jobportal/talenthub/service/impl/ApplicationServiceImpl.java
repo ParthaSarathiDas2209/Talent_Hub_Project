@@ -24,12 +24,12 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final UserRepository userRepository;
     private final JobRepository jobRepository;
 
-
     public ApplicationServiceImpl(ApplicationRepository applicationRepository, UserRepository userRepository, JobRepository jobRepository) {
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
     }
+
 
     @Override
     public ApplicationResponseDto applyJob(ApplicationRequestDto applicationRequestDto) {
