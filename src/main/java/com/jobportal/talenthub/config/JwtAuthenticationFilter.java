@@ -34,6 +34,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Read Authorization header from incoming request
         String authHeader = request.getHeader("Authorization");
 
+        System.out.println("Authorization header : " + authHeader);
+
         // If Authorization header is missing OR
         // it is not a Bearer token, skip JWT authentication
         // and continue with the next filter.
@@ -48,6 +50,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Extract email from JWT
         String email = jwtService.extractEmail(jwt);
 
+        System.out.println("Email extracted: " + email);
+
         // Authenticate only if email exists
         // and Spring Security has not already authenticated this request
         if (email != null &&
@@ -60,6 +64,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Validate JWT against database user
             if (jwtService.isTokenValid(jwt, userDetails)) {
 
+                System.out.println("JWT valid");
+
                 // Create Spring Security Authentication object
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -71,6 +77,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Store authenticated user in Spring Security Context
                 SecurityContextHolder.getContext()
                         .setAuthentication(authentication);
+
+                System.out.println("Authentication Stored");
             }
         }
 

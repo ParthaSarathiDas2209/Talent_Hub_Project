@@ -3,6 +3,7 @@ package com.jobportal.talenthub.config;
 import com.jobportal.talenthub.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -13,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 
 @Configuration
 @EnableWebSecurity
@@ -61,16 +63,45 @@ public class SecurityConfig {
                 )
 
                 // Configure Authorization Rules
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(
+                        auth -> auth
 
-                        // Authentication APIs are public.
-                        // Register/Login doesn't require JWT.
-                        .requestMatchers("/api/auth/**")
-                        .permitAll()
+                                // Authentication APIs are public.
+                                // Register/Login doesn't require JWT.
+                                .requestMatchers("/api/auth/**")
+                                .permitAll()
 
-                        // Every other API requires authentication.
-                        .anyRequest()
-                        .authenticated()
+//              Jobs
+                                .requestMatchers(HttpMethod.GET, "/api/jobs/**")
+                                .authenticated()
+
+                                .requestMatchers(HttpMethod.POST, "/api/jobs/**")
+                                .hasRole("RECRUITER")
+
+                                .requestMatchers(HttpMethod.PUT, "/api/jobs/**")
+                                .hasRole("RECRUITER")
+
+                                .requestMatchers(HttpMethod.PATCH, "/api/jobs/**")
+                                .hasRole("RECRUITER")
+
+                                .requestMatchers(HttpMethod.DELETE, "/api/jobs/**")
+                                .hasRole("RECRUITER")
+//              Applications
+                                .requestMatchers(HttpMethod.POST, "/api/applications/**")
+                                .hasRole("JOB_SEEKER")
+
+                                .requestMatchers(HttpMethod.GET, "/api/applications/**")
+                                .authenticated()
+
+                                .requestMatchers(HttpMethod.PATCH, "/api/applications/*/status")
+                                .hasRole("RECRUITER")
+
+                                .requestMatchers(HttpMethod.DELETE, "/api/applications/**")
+                                .authenticated()
+
+                                // Every other API requires authentication.
+                                .anyRequest()
+                                .authenticated()
                 )
 
                 // Tell Spring which AuthenticationProvider

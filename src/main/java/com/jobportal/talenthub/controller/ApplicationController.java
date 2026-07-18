@@ -7,6 +7,7 @@ import com.jobportal.talenthub.entity.ApplicationStatus;
 import com.jobportal.talenthub.service.ApplicationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,13 +33,21 @@ public class ApplicationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApplicationResponseDto> getApplicationById(@PathVariable Long id) {
-        return ResponseEntity.ok(applicationService.getApplicationById(id));
+    public ResponseEntity<ApplicationResponseDto> getApplicationById(@PathVariable Long id,
+                                                                     Authentication authentication) {
+        return ResponseEntity.ok(
+                applicationService.getApplicationById(
+                        id,
+                        authentication.getName())
+        );
     }
 
     @GetMapping
-    public ResponseEntity<List<ApplicationResponseDto>> getAllApplications() {
-        return ResponseEntity.ok(applicationService.getAllApplications());
+    public ResponseEntity<List<ApplicationResponseDto>> getAllApplications(Authentication authentication) {
+        return ResponseEntity.ok(applicationService
+                .getAllApplications(
+                        authentication.getName())
+        );
     }
 
     @DeleteMapping("/{id}")

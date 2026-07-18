@@ -10,9 +10,9 @@ public interface ApplicationService {
 
     ApplicationResponseDto applyJob(ApplicationRequestDto applicationRequestDto);
 
-    ApplicationResponseDto getApplicationById(Long id);
+    ApplicationResponseDto getApplicationById(Long id, String email);
 
-    List<ApplicationResponseDto> getAllApplications();
+    List<ApplicationResponseDto> getAllApplications(String email);
 
     void deleteApplication(Long id);
 
