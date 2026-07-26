@@ -56,6 +56,17 @@ public class Job {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private JobStatus status = JobStatus.DRAFT;
+
+    private boolean deleted = false;
+
+    private LocalDateTime applicationStartTime;
+    private LocalDateTime applicationEndTime;
+
+    private LocalDateTime deletedAt;
+
     @OneToMany(mappedBy = "job")
     private List<Application> applications;
 

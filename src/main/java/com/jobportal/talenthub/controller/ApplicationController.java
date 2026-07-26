@@ -24,11 +24,15 @@ public class ApplicationController {
 
 
     @PostMapping
-    public ResponseEntity<ApplicationResponseDto> applyJob(@RequestBody ApplicationRequestDto applicationRequestDto) {
+    public ResponseEntity<ApplicationResponseDto> applyJob(
+            @RequestBody ApplicationRequestDto applicationRequestDto,
+            Authentication authentication) {
 //        return ResponseEntity.ok(applicationService.applyJob(applicationRequestDto));
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(applicationService.applyJob(applicationRequestDto)
+                .body(applicationService.applyJob(
+                        applicationRequestDto,
+                        authentication.getName())
                 );
     }
 
@@ -51,18 +55,32 @@ public class ApplicationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteApplicationById(@PathVariable Long id) {
-        applicationService.deleteApplication(id);
+    public ResponseEntity<String> deleteApplicationById(@PathVariable Long id,
+                                                        Authentication authentication) {
+        applicationService.deleteApplication(id,
+                authentication.getName()
+        );
+
         return ResponseEntity.ok("Application has been deleted successfully ! ");
     }
 
     @PatchMapping("/{applicationId}/status")
     public ResponseEntity<ApplicationResponseDto> updateApplicationStatus(@PathVariable Long applicationId,
-                                                                          @RequestParam ApplicationStatus applicationStatus) {
+                                                                          @RequestParam ApplicationStatus applicationStatus,
+                                                                          Authentication authentication) {
 
         ApplicationResponseDto updatedApplication =
-                applicationService.updateApplicationStatus(applicationId, applicationStatus);
+                applicationService.updateApplicationStatus(applicationId, applicationStatus,
+                        authentication.getName()
+                );
 
         return ResponseEntity.ok(updatedApplication);
+    }
+
+    @GetMapping("/recruiter")
+    public ResponseEntity<List<ApplicationResponseDto>> getRecruiterApplications(Authentication authentication) {
+        return ResponseEntity.ok(applicationService.getRecruiterApplications(
+                authentication.getName()
+        ));
     }
 }

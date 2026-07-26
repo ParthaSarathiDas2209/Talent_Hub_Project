@@ -68,8 +68,15 @@ public class SecurityConfig {
 
                                 // Authentication APIs are public.
                                 // Register/Login doesn't require JWT.
-                                .requestMatchers("/api/auth/**")
+                                .requestMatchers(
+                                        "/api/auth/**"
+//                                        "/api/jobs/**"
+                                )
                                 .permitAll()
+
+//              ADMIN
+                                .requestMatchers("/api/admin/**")
+                                .hasRole("ADMIN")
 
 //              Jobs
                                 .requestMatchers(HttpMethod.GET, "/api/jobs/**")
@@ -86,7 +93,12 @@ public class SecurityConfig {
 
                                 .requestMatchers(HttpMethod.DELETE, "/api/jobs/**")
                                 .hasRole("RECRUITER")
-//              Applications
+
+
+//              Applications + Recruiter
+                                .requestMatchers(HttpMethod.GET, "/api/applications/recruiter")
+                                .hasRole("RECRUITER")
+
                                 .requestMatchers(HttpMethod.POST, "/api/applications/**")
                                 .hasRole("JOB_SEEKER")
 
@@ -103,6 +115,7 @@ public class SecurityConfig {
                                 .anyRequest()
                                 .authenticated()
                 )
+
 
                 // Tell Spring which AuthenticationProvider
                 // should verify username & password.

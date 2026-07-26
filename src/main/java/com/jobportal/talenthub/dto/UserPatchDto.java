@@ -2,6 +2,7 @@ package com.jobportal.talenthub.dto;
 
 import com.jobportal.talenthub.entity.Role;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UserPatchDto(
@@ -16,6 +17,7 @@ public record UserPatchDto(
         @Size(min = 6, max = 30)
         String password,
 
+        @NotNull
         Role role
 ) {
 }

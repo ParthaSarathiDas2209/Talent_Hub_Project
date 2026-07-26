@@ -9,8 +9,10 @@ import java.util.List;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
-    boolean existsByUserAndJob(User user, Job job);
+    boolean existsByUserAndJob(User user, Job job); // Has this user already applied to this job?
 
-    List<Application> findAllByUser(User user);
+    List<Application> findAllByUser(User user); // What jobs has this user applied to?
+
+    List<Application> findAllByJobRecruiter(User recruiter); // Who has applied to this recruiter's jobs?
 
 }

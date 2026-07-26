@@ -26,9 +26,9 @@ public record JobRequestDto(
         String location,
 
         @NotNull(message = "Salary is Required")
-        Long salary,
+        Long salary
 
-        @NotNull(message = "Recruiter Id is Required")
-        Long recruiterId
+//        @NotNull(message = "Recruiter Id is Required")
+//        Long recruiterId
 ) {
 }

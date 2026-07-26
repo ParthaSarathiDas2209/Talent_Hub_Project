@@ -8,14 +8,16 @@ import java.util.List;
 
 public interface ApplicationService {
 
-    ApplicationResponseDto applyJob(ApplicationRequestDto applicationRequestDto);
+    ApplicationResponseDto applyJob(ApplicationRequestDto applicationRequestDto, String email);
 
     ApplicationResponseDto getApplicationById(Long id, String email);
 
     List<ApplicationResponseDto> getAllApplications(String email);
 
-    void deleteApplication(Long id);
+    void deleteApplication(Long id, String email);
 
-    ApplicationResponseDto updateApplicationStatus(Long applicationId, ApplicationStatus applicationStatus);
+    ApplicationResponseDto updateApplicationStatus(Long applicationId, ApplicationStatus applicationStatus, String email);
+
+    List<ApplicationResponseDto> getRecruiterApplications(String email);
 
 }

@@ -46,5 +46,7 @@ public class Application {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime appliedAt;
 
-
+    private boolean deleted = false;
+    private LocalDateTime deletedAt;
+    
 }

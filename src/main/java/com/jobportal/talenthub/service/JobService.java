@@ -8,16 +8,16 @@ import java.util.List;
 
 public interface JobService {
 
-    JobResponseDto createJob(JobRequestDto jobRequestDto);
+    JobResponseDto createJob(JobRequestDto jobRequestDto, String email);
 
-    JobResponseDto updateJob(Long id, JobRequestDto jobRequestDto);
+    JobResponseDto updateJob(Long id, JobRequestDto jobRequestDto, String email);
 
     List<JobResponseDto> getAllJobs();
 
-    JobResponseDto patchJob(Long id, JobPatchDto jobPatchDto);
+    JobResponseDto patchJob(Long id, JobPatchDto jobPatchDto, String email);
 
     JobResponseDto getJobById(Long id);
 
-    void deleteJob(Long id);
+    void deleteJob(Long id, String email);
 
 }

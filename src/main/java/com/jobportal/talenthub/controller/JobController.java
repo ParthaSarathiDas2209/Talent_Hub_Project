@@ -7,6 +7,7 @@ import com.jobportal.talenthub.service.JobService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,24 +23,29 @@ public class JobController {
     }
 
     @PostMapping
-    public ResponseEntity<JobResponseDto> createJob(@Valid @RequestBody JobRequestDto jobRequestDto) {
+    public ResponseEntity<JobResponseDto> createJob(@Valid @RequestBody JobRequestDto jobRequestDto,
+                                                    Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(jobService.createJob(jobRequestDto));
+                .body(jobService.createJob(jobRequestDto,
+                        authentication.getName()));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<JobResponseDto> updateJob(@PathVariable Long id, @Valid @RequestBody JobRequestDto jobRequestDto) {
+    public ResponseEntity<JobResponseDto> updateJob(@PathVariable Long id, @Valid @RequestBody JobRequestDto jobRequestDto,
+                                                    Authentication authentication) {
 //        return ResponseEntity.status(HttpStatus.OK)
 //                .body(jobService.updateJob(id, jobRequestDto));
 
         return ResponseEntity.ok(
-                jobService.updateJob(id, jobRequestDto)
+                jobService.updateJob(id, jobRequestDto,
+                        authentication.getName())
         );
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteJob(@PathVariable Long id) {
-        jobService.deleteJob(id);
+    public ResponseEntity<String> deleteJob(@PathVariable Long id,
+                                            Authentication authentication) {
+        jobService.deleteJob(id, authentication.getName());
         return ResponseEntity.ok("Job has been deleted successfully! ");
     }
 
@@ -52,10 +58,12 @@ public class JobController {
     public ResponseEntity<List<JobResponseDto>> getAllJobs() {
         return ResponseEntity.ok(jobService.getAllJobs());
     }
-    
+
     @PatchMapping("/{id}")
-    public ResponseEntity<JobResponseDto> patchJob(@PathVariable Long id, @Valid @RequestBody JobPatchDto jobPatchDto) {
-        return ResponseEntity.ok(jobService.patchJob(id, jobPatchDto));
+    public ResponseEntity<JobResponseDto> patchJob(@PathVariable Long id, @Valid @RequestBody JobPatchDto jobPatchDto,
+                                                   Authentication authentication) {
+        return ResponseEntity.ok(jobService.patchJob(id, jobPatchDto,
+                authentication.getName()));
     }
 
 }
