@@ -40,8 +40,12 @@ public class JobServiceImpl implements JobService {
                 );
 
         Job job = JobMapper.toEntity(jobRequestDto);
+
         job.setRecruiter(recruiter);
+        job.setStatus(JobStatus.ACTIVE);
+
         Job savedJob = jobRepository.save(job);
+        
         return JobMapper.toResponseDto(savedJob);
     }
 

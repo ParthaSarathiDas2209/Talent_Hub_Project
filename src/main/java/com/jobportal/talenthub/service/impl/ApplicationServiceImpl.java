@@ -2,12 +2,10 @@ package com.jobportal.talenthub.service.impl;
 
 import com.jobportal.talenthub.dto.ApplicationRequestDto;
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
-import com.jobportal.talenthub.entity.Application;
-import com.jobportal.talenthub.entity.ApplicationStatus;
-import com.jobportal.talenthub.entity.Job;
-import com.jobportal.talenthub.entity.User;
+import com.jobportal.talenthub.entity.*;
 import com.jobportal.talenthub.exception.AccessDeniedException;
 import com.jobportal.talenthub.exception.DuplicateApplicationException;
+import com.jobportal.talenthub.exception.JobApplicationException;
 import com.jobportal.talenthub.exception.ResourceNotFoundException;
 import com.jobportal.talenthub.mapper.ApplicationMapper;
 import com.jobportal.talenthub.repository.ApplicationRepository;
@@ -16,6 +14,7 @@ import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.ApplicationService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -71,14 +70,11 @@ public class ApplicationServiceImpl implements ApplicationService {
             ApplicationRequestDto applicationRequestDto,
             String email) {
 
-
-        // The email comes from the authenticated JWT.
-        //
-        // email
-        //   ↓
-        // Find the currently logged-in user.
-        //
-        // This user is the applicant.
+        // ==========================================================
+        // STEP 1 : Identify the logged-in user from the JWT token.
+        // The email comes from Authentication.getName().
+        // This user will be the applicant.
+        // ==========================================================
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -86,12 +82,28 @@ public class ApplicationServiceImpl implements ApplicationService {
                         )
                 );
 
+        // ==========================================================
+        // STEP 2 : USER VALIDATION
+        // Ensure the logged-in user is allowed to apply.
+        // ==========================================================
 
-        // The request contains the jobId.
-        //
-        // jobId
-        //   ↓
-        // Find the job for which the user wants to apply.
+        // Only JOB_SEEKER accounts can apply for jobs.
+        if (user.getRole() != Role.JOB_SEEKER) {
+            throw new AccessDeniedException(
+                    "Only Job Seekers can apply for jobs."
+            );
+        }
+
+        // User account must be ACTIVE.
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new AccessDeniedException(
+                    "Your account is not active."
+            );
+        }
+
+        // ==========================================================
+        // STEP 3 : Find the job using the provided jobId.
+        // ==========================================================
         Job job = jobRepository.findById(
                         applicationRequestDto.jobId()
                 )
@@ -102,48 +114,86 @@ public class ApplicationServiceImpl implements ApplicationService {
                         )
                 );
 
+        // ==========================================================
+        // STEP 4 : JOB VALIDATION
+        // Verify whether this job can currently accept applications.
+        // ==========================================================
 
-        // Check whether this same user has already applied
-        // to this same job.
-        //
-        // Same User + Same Job
-        //        ↓
-        // Duplicate application
-        if (applicationRepository.existsByUserAndJob(user, job)) {
-
-            throw new DuplicateApplicationException(
-                    "You have already applied for this job: "
-                            + applicationRequestDto.jobId()
+        // Recruiters cannot apply to their own jobs.
+        if (job.getRecruiter().getId().equals(user.getId())) {
+            throw new JobApplicationException(
+                    "You cannot apply to your own job."
             );
         }
 
+        // Soft-deleted jobs should not accept applications.
+        if (job.isDeleted()) {
+            throw new JobApplicationException(
+                    "This job has been removed and is no longer accepting applications."
+            );
+        }
 
-        // Create a new Application object.
+        // Only ACTIVE jobs are open for applications.
+        if (job.getStatus() != JobStatus.ACTIVE) {
+            throw new JobApplicationException(
+                    "You can only apply for an active job."
+            );
+        }
+
+        // Current timestamp used for application window validation.
+        LocalDateTime now = LocalDateTime.now();
+
+        // Application period has not started yet.
+        if (job.getApplicationStartTime() != null &&
+                now.isBefore(job.getApplicationStartTime())) {
+            throw new JobApplicationException(
+                    "Applications for this job have not started yet."
+            );
+        }
+
+        // Application period has already ended.
+        if (job.getApplicationEndTime() != null &&
+                now.isAfter(job.getApplicationEndTime())) {
+            throw new JobApplicationException(
+                    "The application period for this job has already ended."
+            );
+        }
+
+        // ==========================================================
+        // STEP 5 : APPLICATION VALIDATION
+        // Prevent duplicate applications by the same user
+        // for the same job.
+        // ==========================================================
+        if (applicationRepository.existsByUserAndJob(user, job)) {
+            throw new DuplicateApplicationException(
+                    "You have already applied for this job."
+            );
+        }
+
+        // ==========================================================
+        // STEP 6 : Create a new Application entity.
+        // ==========================================================
         Application application = new Application();
 
-
-        // Connect the application to the logged-in user.
-        //
-        // This user is the applicant.
+        // Associate the logged-in user with the application.
         application.setUser(user);
 
-
-        // Connect the application to the selected job.
+        // Associate the selected job with the application.
         application.setJob(job);
 
-
-        // Every new application starts with APPLIED status.
+        // Every newly created application starts with APPLIED status.
         application.setStatus(ApplicationStatus.APPLIED);
 
-
-        // Save the application in the database.
+        // ==========================================================
+        // STEP 7 : Persist the application in the database.
+        // ==========================================================
         Application savedApplication =
                 applicationRepository.save(application);
 
-
-        // Convert Entity to Response DTO.
-        return ApplicationMapper
-                .toApplicationResponseDto(savedApplication);
+        // ==========================================================
+        // STEP 8 : Convert Entity → Response DTO and return it.
+        // ==========================================================
+        return ApplicationMapper.toApplicationResponseDto(savedApplication);
     }
 
 
