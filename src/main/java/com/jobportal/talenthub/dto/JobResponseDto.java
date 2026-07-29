@@ -1,5 +1,7 @@
 package com.jobportal.talenthub.dto;
 
+import java.time.LocalDateTime;
+
 public record JobResponseDto(
         Long id,
         String title,
@@ -9,6 +11,10 @@ public record JobResponseDto(
         String companyPhone,
         String location,
         Long salary,
-        Long recruiterId
+        Long recruiterId,
+
+        LocalDateTime applicationStartTime,
+        LocalDateTime applicationEndTime
+
 ) {
 }

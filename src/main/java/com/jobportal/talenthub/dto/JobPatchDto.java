@@ -3,6 +3,8 @@ package com.jobportal.talenthub.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Positive;
 
+import java.time.LocalDateTime;
+
 public record JobPatchDto(
 
         String title,
@@ -19,7 +21,11 @@ public record JobPatchDto(
         String location,
 
         @Positive
-        Long salary
+        Long salary,
+
+        LocalDateTime applicationStartTime,
+
+        LocalDateTime applicationEndTime
 
 ) {
 }

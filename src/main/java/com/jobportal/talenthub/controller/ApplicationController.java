@@ -5,6 +5,7 @@ import com.jobportal.talenthub.dto.ApplicationRequestDto;
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
 import com.jobportal.talenthub.entity.ApplicationStatus;
 import com.jobportal.talenthub.service.ApplicationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -25,7 +26,7 @@ public class ApplicationController {
 
     @PostMapping
     public ResponseEntity<ApplicationResponseDto> applyJob(
-            @RequestBody ApplicationRequestDto applicationRequestDto,
+            @Valid @RequestBody ApplicationRequestDto applicationRequestDto,
             Authentication authentication) {
 //        return ResponseEntity.ok(applicationService.applyJob(applicationRequestDto));
 
@@ -61,7 +62,7 @@ public class ApplicationController {
                 authentication.getName()
         );
 
-        return ResponseEntity.ok("Application has been deleted successfully ! ");
+        return ResponseEntity.ok("Application deleted successfully ! ");
     }
 
     @PatchMapping("/{applicationId}/status")

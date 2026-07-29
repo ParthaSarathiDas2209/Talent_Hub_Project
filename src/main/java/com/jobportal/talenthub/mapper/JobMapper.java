@@ -17,6 +17,8 @@ public class JobMapper {
         job.setCompanyPhone(jobRequestDto.companyPhone());
         job.setLocation(jobRequestDto.location());
         job.setSalary(jobRequestDto.salary());
+        job.setApplicationStartTime(jobRequestDto.applicationStartTime());
+        job.setApplicationEndTime(jobRequestDto.applicationEndTime());
 
         return job;
     }
@@ -31,7 +33,9 @@ public class JobMapper {
                 job.getCompanyPhone(),
                 job.getLocation(),
                 job.getSalary(),
-                job.getRecruiter().getId()
+                job.getRecruiter().getId(),
+                job.getApplicationStartTime(),
+                job.getApplicationEndTime()
         );
     }
 }

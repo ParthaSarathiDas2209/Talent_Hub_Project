@@ -62,7 +62,10 @@ public class Job {
 
     private boolean deleted = false;
 
+    @Column(name = "application_start_time")
     private LocalDateTime applicationStartTime;
+
+    @Column(name = "application_end_time")
     private LocalDateTime applicationEndTime;
 
     private LocalDateTime deletedAt;

@@ -303,7 +303,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         // another user's applications.
         List<Application> applications =
                 applicationRepository
-                        .findAllByUser(loggedInUser);
+                        .findAllByUserAndDeletedFalse(loggedInUser);
 
 
         // Convert every Application entity
@@ -356,7 +356,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         // Check whether the logged-in user
         // is the owner/applicant of this application.
-        //
+
         // Application Applicant
         //          VS
         // Logged-in User
@@ -371,30 +371,21 @@ public class ApplicationServiceImpl implements ApplicationService {
             );
         }
 
+        if (application.isDeleted()) {
+            throw new JobApplicationException(
+                    "This application has been removed and is no longer accepting applications."
+            );
+        }
 
-        // Ownership check passed.
-        applicationRepository.delete(application);
+//        // Ownership check passed.
+
+//        applicationRepository.delete(application);
+
+        application.setDeleted(true);
+        application.setDeletedAt(LocalDateTime.now());
+        applicationRepository.save(application);
     }
 
-
-    /*
-     * ============================================================
-     * UPDATE APPLICATION STATUS
-     * ============================================================
-     *
-     * Only the recruiter who owns the job
-     * can update the application's status.
-     *
-     * Application
-     *      ↓
-     * Job
-     *      ↓
-     * Recruiter
-     *
-     * Logged-in User
-     *      VS
-     * Job's Recruiter
-     */
 
     @Override
     public ApplicationResponseDto updateApplicationStatus(
@@ -402,10 +393,10 @@ public class ApplicationServiceImpl implements ApplicationService {
             ApplicationStatus applicationStatus,
             String email) {
 
-
-        // applicationId
-        //      ↓
-        // Find the application.
+        // ==========================================================
+        // STEP 1 : Find the application using the applicationId.
+        // This is the application whose status will be updated.
+        // ==========================================================
         Application application =
                 applicationRepository.findById(applicationId)
                         .orElseThrow(() ->
@@ -415,10 +406,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 )
                         );
 
-
-        // Find the person making the request.
-        //
-        // The email comes from the JWT.
+        // ==========================================================
+        // STEP 2 : Find the currently logged-in user.
+        // The email comes from the authenticated JWT token.
+        // ==========================================================
         User loggedInUser =
                 userRepository.findByEmail(email)
                         .orElseThrow(() ->
@@ -427,48 +418,117 @@ public class ApplicationServiceImpl implements ApplicationService {
                                 )
                         );
 
+        // ==========================================================
+        // STEP 3 : RECRUITER VALIDATION
+        // Ensure only ACTIVE recruiters can update
+        // an application's status.
+        // ==========================================================
 
-        // Find the recruiter who owns the job
-        // connected to this application.
-        //
+        // Only recruiters are allowed to update application status.
+        if (loggedInUser.getRole() != Role.RECRUITER) {
+            throw new AccessDeniedException(
+                    "Only recruiters can update application status."
+            );
+        }
+
+        // Recruiter's account must be ACTIVE.
+        if (loggedInUser.getStatus() != UserStatus.ACTIVE) {
+            throw new AccessDeniedException(
+                    "Your account is not active."
+            );
+        }
+
+        // ==========================================================
+        // STEP 4 : OWNERSHIP VALIDATION
+        // Ensure the logged-in recruiter owns the job
+        // for which this application was submitted.
+        // ==========================================================
+
         // Application
         //      ↓
         // Job
         //      ↓
-        // Recruiter
-        User recruiter =
-                application.getJob().getRecruiter();
+        // Recruiter (Job Owner)
+        User recruiter = application.getJob().getRecruiter();
 
-
-        // Check whether the logged-in user
-        // is the recruiter who owns this job.
-        //
-        // Logged-in User
-        //       VS
-        // Job Owner / Recruiter
-        if (!recruiter.getId()
-                .equals(loggedInUser.getId())) {
-
-
-            // A different recruiter cannot update
-            // this application's status.
+        // Logged-in recruiter must be the owner
+        // of the job to update this application.
+        if (!recruiter.getId().equals(loggedInUser.getId())) {
             throw new AccessDeniedException(
-                    "You are not allowed to update this application"
+                    "You are not allowed to update this application."
+            );
+        }
+
+        // ==========================================================
+        // STEP 5 : APPLICATION VALIDATION
+        // Before updating the application's status,
+        // verify that the application is still valid
+        // and eligible for a status change.
+        // ==========================================================
+
+        // A deleted application should not be updated.
+        //
+        // Deleted Application
+        //        ↓
+        // No further business operations allowed.
+        if (application.isDeleted()) {
+            throw new JobApplicationException(
+                    "This application has already been deleted."
+            );
+        }
+
+        // Prevent updating to the same status.
+        //
+        // Current Status
+        //        VS
+        // Requested Status
+        //
+        // Example:
+        //
+        // APPLIED
+        //    ↓
+        // APPLIED   ❌
+        //
+        // Since there is no actual change,
+        // reject the request instead of performing
+        // an unnecessary database update.
+        if (application.getStatus() == applicationStatus) {
+            throw new JobApplicationException(
+                    "Application is already in " + applicationStatus + " status."
+            );
+        }
+
+        if (applicationStatus == null) {
+            throw new JobApplicationException(
+                    "Application status cannot be null."
             );
         }
 
 
-        // Ownership check passed.
-        // Update the application status.
+        // ==========================================================
+        // STEP 6 : STATUS TRANSITION VALIDATION
+        // Ensure the requested status change follows
+        // the allowed application workflow.
+        // ==========================================================
+        validateStatusTransition(
+                application.getStatus(),
+                applicationStatus
+        );
+
+        // ==========================================================
+        // STEP 7 : Update the application's status.
+        // ==========================================================
         application.setStatus(applicationStatus);
 
-
-        // Save the updated application.
+        // ==========================================================
+        // STEP 8 : Save the updated application.
+        // ==========================================================
         Application updatedApplication =
                 applicationRepository.save(application);
 
-
-        // Return updated application as DTO.
+        // ==========================================================
+        // STEP 9 : Convert Entity → Response DTO and return it.
+        // ==========================================================
         return ApplicationMapper
                 .toApplicationResponseDto(updatedApplication);
     }
@@ -534,6 +594,51 @@ public class ApplicationServiceImpl implements ApplicationService {
         return applications.stream()
                 .map(ApplicationMapper::toApplicationResponseDto)
                 .toList();
+    }
+
+
+    private void validateStatusTransition(
+            ApplicationStatus currentStatus,
+            ApplicationStatus newStatus
+    ) {
+
+        switch (currentStatus) {
+            case APPLIED -> {
+                if (newStatus != ApplicationStatus.SHORTLISTED &&
+                        newStatus != ApplicationStatus.REJECTED &&
+                        newStatus != ApplicationStatus.WITHDRAWN) {
+                    throw new JobApplicationException(
+                            "Application in APPLIED Status can only be updated to SHORTLISTED, REJECTED, OR WITHDRAWN."
+                    );
+                }
+            }
+
+            case SHORTLISTED -> {
+                if (newStatus != ApplicationStatus.INTERVIEWED &&
+                        newStatus != ApplicationStatus.REJECTED) {
+
+                    throw new JobApplicationException(
+                            "Application in SHORTLISTED Status can only be updated to INTERVIEWED or REJECTED. "
+                    );
+                }
+            }
+
+            case INTERVIEWED -> {
+                if (newStatus != ApplicationStatus.ACCEPTED &&
+                        newStatus != ApplicationStatus.REJECTED) {
+                    throw new JobApplicationException(
+                            "Application in INTERVIEWED status can only be updated to ACCEPTED or REJECTED."
+                    );
+                }
+            }
+
+            case ACCEPTED, REJECTED, WITHDRAWN -> {
+                throw new JobApplicationException(
+                        "Application in " + currentStatus +
+                                " status cannot be updated further."
+                );
+            }
+        }
     }
 
 }

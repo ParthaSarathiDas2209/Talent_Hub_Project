@@ -77,37 +77,6 @@ public class UserServiceImpl implements UserService {
         return UserMapper.toResponseDto(updatedUser);
     }
 
-//    @Override
-//    public UserResponseDto patchUser(Long id, Map<String, Object> updates) {
-//
-//        User user = userRepository.findById(id)
-//                .orElseThrow(() ->
-//                        new ResourceNotFoundException("User Not Found with id : " + id)
-//                );
-//
-//        if (updates.containsKey("firstName")) {
-//            user.setFirstName(updates.get("firstName").toString());
-//        }
-//
-//        if (updates.containsKey("lastName")) {
-//            user.setLastName(updates.get("lastName").toString());
-//        }
-//
-//        if (updates.containsKey("email")) {
-//            user.setEmail(updates.get("email").toString());
-//        }
-//
-//        if (updates.containsKey("password")) {
-//            user.setPassword(updates.get("password").toString());
-//        }
-//
-//        if (updates.containsKey("role")) {
-//            user.setRole(Role.valueOf((String) updates.get("role")));
-//        }
-//
-//        User updatedUser = userRepository.save(user);
-//        return UserMapper.toResponseDto(updatedUser);
-//    }
 
     @Override
     public List<UserResponseDto> getAllUsers() {

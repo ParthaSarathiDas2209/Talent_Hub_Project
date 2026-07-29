@@ -4,6 +4,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDateTime;
+
 public record JobRequestDto(
 
         @NotBlank(message = "Title is Required")
@@ -26,7 +28,14 @@ public record JobRequestDto(
         String location,
 
         @NotNull(message = "Salary is Required")
-        Long salary
+        Long salary,
+
+        @NotNull(message = "Application Start Time is Required")
+        LocalDateTime applicationStartTime,
+
+        @NotNull(message = "Application End Time is Required")
+        LocalDateTime applicationEndTime
+
 
 //        @NotNull(message = "Recruiter Id is Required")
 //        Long recruiterId
