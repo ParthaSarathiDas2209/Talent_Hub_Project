@@ -36,7 +36,6 @@ public record JobRequestDto(
         @NotNull(message = "Application End Time is Required")
         LocalDateTime applicationEndTime
 
-
 //        @NotNull(message = "Recruiter Id is Required")
 //        Long recruiterId
 ) {

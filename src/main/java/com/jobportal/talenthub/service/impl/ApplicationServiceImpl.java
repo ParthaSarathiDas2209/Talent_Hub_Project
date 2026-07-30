@@ -381,6 +381,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 //        applicationRepository.delete(application);
 
+        application.setStatus(ApplicationStatus.WITHDRAWN);
         application.setDeleted(true);
         application.setDeletedAt(LocalDateTime.now());
         applicationRepository.save(application);
@@ -589,6 +590,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                 applicationRepository
                         .findAllByJobRecruiter(recruiter);
 
+
+        System.out.println("Logged in recruiter id : " + recruiter.getId());
+        System.out.println("Logged in recruiter email : " + recruiter.getEmail());
 
         // Convert entities into DTOs.
         return applications.stream()

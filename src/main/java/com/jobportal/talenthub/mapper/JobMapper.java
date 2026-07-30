@@ -17,6 +17,7 @@ public class JobMapper {
         job.setCompanyPhone(jobRequestDto.companyPhone());
         job.setLocation(jobRequestDto.location());
         job.setSalary(jobRequestDto.salary());
+        
         job.setApplicationStartTime(jobRequestDto.applicationStartTime());
         job.setApplicationEndTime(jobRequestDto.applicationEndTime());
 

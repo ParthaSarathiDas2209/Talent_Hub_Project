@@ -66,6 +66,9 @@ public class JobServiceImpl implements JobService {
         // STEP 3 : Convert DTO → Entity.
         // ==========================================================
         Job job = JobMapper.toEntity(jobRequestDto);
+        
+        System.out.println("Start Time = " + jobRequestDto.applicationStartTime());
+        System.out.println("EndTime = " + jobRequestDto.applicationEndTime());
 
         // ==========================================================
         // STEP 4 : Validate application window.
