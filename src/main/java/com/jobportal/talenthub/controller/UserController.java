@@ -38,9 +38,14 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
+//    @GetMapping("/{id}")
+//    public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
+//        return ResponseEntity.ok(userService.getUserById(id));
+//}
+
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+    public ResponseEntity<String> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok("User endpoint is working : " + id);
     }
 
     @DeleteMapping("/{id}")

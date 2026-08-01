@@ -4,25 +4,37 @@ import com.jobportal.talenthub.dto.UserPatchDto;
 import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 import com.jobportal.talenthub.entity.User;
+import com.jobportal.talenthub.entity.UserStatus;
+import com.jobportal.talenthub.exception.JobApplicationException;
 import com.jobportal.talenthub.exception.ResourceNotFoundException;
 import com.jobportal.talenthub.mapper.UserMapper;
 import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.UserService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
+
 
     @Override
     public UserResponseDto createUser(UserRequestDto userRequestDto) {
+
+        if (userRepository.existsByEmail(userRequestDto.email())) {
+            throw new JobApplicationException("Email already exists");
+        }
+
         User user = UserMapper.toEntity(userRequestDto);
         User savedUser = userRepository.save(user);
         return UserMapper.toResponseDto(savedUser);
@@ -31,14 +43,27 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDto updateUser(Long id, UserRequestDto userRequestDto) {
 
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User Not Found with id : " + id));
+                        new ResourceNotFoundException(
+                                "User Not Found with id : " + id
+                        )
+                );
+
+        if (userRepository.existsByEmail(userRequestDto.email())
+                && !user.getEmail().equals(userRequestDto.email())) {
+
+            throw new JobApplicationException(
+                    "Email Already Exists."
+            );
+        }
 
         user.setFirstName(userRequestDto.firstName());
         user.setLastName(userRequestDto.lastName());
         user.setEmail(userRequestDto.email());
-        user.setPassword(userRequestDto.password());
+        user.setPassword(
+                passwordEncoder.encode(
+                        userRequestDto.password()));
         user.setRole(userRequestDto.role());
 
         User updatedUser = userRepository.save(user);
@@ -48,7 +73,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDto patchUser(Long id, UserPatchDto userPatchDto) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User Not Found with id : " + id));
 
@@ -60,17 +85,30 @@ public class UserServiceImpl implements UserService {
             user.setLastName(userPatchDto.lastName());
         }
 
+        if (userPatchDto.email() != null
+                && userRepository.existsByEmail(userPatchDto.email())
+                && !user.getEmail().equals(userPatchDto.email())) {
+
+            throw new JobApplicationException(
+                    "Email Already Exists."
+            );
+        }
+
         if (userPatchDto.email() != null) {
             user.setEmail(userPatchDto.email());
         }
 
         if (userPatchDto.password() != null) {
-            user.setPassword(userPatchDto.password());
+            user.setPassword(
+                    passwordEncoder.encode(
+                            userPatchDto.password())
+            );
         }
 
         if (userPatchDto.role() != null) {
             user.setRole(userPatchDto.role());
         }
+
 
         User updatedUser = userRepository.save(user);
 
@@ -80,7 +118,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponseDto> getAllUsers() {
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAllByDeletedFalse();
         return users.stream()
                 .map(UserMapper::toResponseDto)
                 .toList();
@@ -88,32 +126,37 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDto getUserById(Long id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException
-                                ("User Not Found with id : " + id));
+                        new ResourceNotFoundException(
+                                "User Not Found with id : " + id
+                        )
+                );
 
         return UserMapper.toResponseDto(user);
     }
 
-//    @Override
-//    public void deleteUser(Long id) {
-//
-//        User user = userRepository.findById(id)
-//                .orElseThrow(() ->
-//                        new ResourceNotFoundException("User Not Found with id: " + id));
-//
-//        userRepository.delete(user);
-//    }
-
     @Override
     public void deleteUser(Long id) {
 
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-        } else {
-            throw new ResourceNotFoundException("User Not Found with id : " + id);
+        User user = userRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User Not Found with id: " + id
+                        )
+                );
+
+        if (user.isDeleted()) {
+            throw new JobApplicationException(
+                    "User has already been deleted"
+            );
         }
+
+        user.setDeleted(true);
+        user.setDeletedAt(LocalDateTime.now());
+        user.setStatus(UserStatus.ACTIVE);
+
+        userRepository.save(user);
     }
 
 }

@@ -51,6 +51,10 @@ public class User {
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
 
+    private boolean deleted = false;
+
+    private LocalDateTime deletedAt;
+
     @OneToMany(mappedBy = "user")
     private List<Application> applications;
 }
