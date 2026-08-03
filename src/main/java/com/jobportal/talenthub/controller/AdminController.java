@@ -66,7 +66,7 @@ public class AdminController {
     @DeleteMapping("/applications/{id}")
     public ResponseEntity<String> deleteApplicationById(@PathVariable Long id) {
         adminService.deleteApplicationById(id);
-        return ResponseEntity.ok("Application id not found :" + id);
+        return ResponseEntity.ok("Application has been deleted successfully :" + id);
     }
 
 

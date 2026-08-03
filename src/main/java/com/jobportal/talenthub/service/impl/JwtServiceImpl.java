@@ -98,8 +98,13 @@ public class JwtServiceImpl implements JwtService {
         // Token is valid only if:
         // 1. Email inside JWT matches logged-in user.
         // 2. Token has not expired.
-        return extractEmail(token)
-                .equals(userDetails.getUsername())
+//        return extractEmail(token)
+//                .equals(userDetails.getUsername())
+//                && !isTokenExpired(token);
+
+        return userDetails
+                .getUsername()
+                .equals(extractEmail(token))
                 && !isTokenExpired(token);
     }
 

@@ -34,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Read Authorization header from incoming request
         String authHeader = request.getHeader("Authorization");
 
-        System.out.println("Authorization header : " + authHeader);
+//        System.out.println("Authorization header : " + authHeader);
 
         // If Authorization header is missing OR
         // it is not a Bearer token, skip JWT authentication
@@ -50,7 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Extract email from JWT
         String email = jwtService.extractEmail(jwt);
 
-        System.out.println("Email extracted: " + email);
+//        System.out.println("Email extracted: " + email);
 
         // Authenticate only if email exists
         // and Spring Security has not already authenticated this request
@@ -61,10 +61,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserDetails userDetails =
                     userDetailsService.loadUserByUsername(email);
 
+//            System.out.println("Authorities : " + userDetails.getAuthorities());
+
             // Validate JWT against database user
             if (jwtService.isTokenValid(jwt, userDetails)) {
 
-                System.out.println("JWT valid");
+//                System.out.println("JWT valid");
 
                 // Create Spring Security Authentication object
                 UsernamePasswordAuthenticationToken authentication =
@@ -74,11 +76,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 userDetails.getAuthorities()
                         );
 
+
                 // Store authenticated user in Spring Security Context
                 SecurityContextHolder.getContext()
                         .setAuthentication(authentication);
 
-                System.out.println("Authentication Stored");
+//                System.out.println(
+//                        "Stored Authorities : " +
+//                                SecurityContextHolder.getContext()
+//                                        .getAuthentication()
+//                                        .getAuthorities()
+//                );
+
+//                System.out.println("Authentication Stored");
             }
         }
 

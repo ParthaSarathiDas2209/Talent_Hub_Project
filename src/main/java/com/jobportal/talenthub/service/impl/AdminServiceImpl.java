@@ -3,10 +3,7 @@ package com.jobportal.talenthub.service.impl;
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
-import com.jobportal.talenthub.entity.Application;
-import com.jobportal.talenthub.entity.Job;
-import com.jobportal.talenthub.entity.JobStatus;
-import com.jobportal.talenthub.entity.User;
+import com.jobportal.talenthub.entity.*;
 import com.jobportal.talenthub.exception.ResourceNotFoundException;
 import com.jobportal.talenthub.mapper.ApplicationMapper;
 import com.jobportal.talenthub.mapper.JobMapper;
@@ -36,7 +33,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public List<UserResponseDto> getAllUsers() {
-        return userRepository.findAll()
+        List<User> users = userRepository.findAllByDeletedFalse();
+
+        return users
                 .stream()
                 .map(UserMapper::toResponseDto)
                 .toList();
@@ -44,7 +43,8 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public UserResponseDto getUsersById(Long id) {
-        User user = userRepository.findById(id)
+
+        User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "User not found with id " + id
@@ -56,18 +56,23 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public void deleteUserById(Long id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "User not found with id " + id
                         )
                 );
-        userRepository.delete(user);
+        user.setDeleted(true);
+        user.setDeletedAt(LocalDateTime.now());
+        user.setStatus(UserStatus.DEACTIVATED);
+
+        userRepository.save(user);
     }
 
     @Override
     public List<JobResponseDto> getAllJobs() {
-        return jobRepository.findAll()
+        List<Job> jobs = jobRepository.findAllByDeletedFalse();
+        return jobs
                 .stream()
                 .map(JobMapper::toResponseDto)
                 .toList();
@@ -76,10 +81,11 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public JobResponseDto getJobById(Long id) {
 
-        Job job = jobRepository.findById(id)
+        Job job = jobRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Job not found with id " + id)
+                                "Job not found with id " + id
+                        )
                 );
 
         return JobMapper.toResponseDto(job);
@@ -87,25 +93,25 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public void deleteJobById(Long id) {
-        Job job = jobRepository.findById(id)
+        Job job = jobRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Job not found with id " + id
                         )
                 );
 
-//        jobRepository.delete(job);
-
         job.setDeleted(true);
         job.setDeletedAt(LocalDateTime.now());
         job.setStatus(JobStatus.DELETED);
-        
+
         jobRepository.save(job);
     }
 
     @Override
     public List<ApplicationResponseDto> getAllApplications() {
-        return applicationRepository.findAll()
+        List<Application> applications =
+                applicationRepository.findAllByDeletedFalse();
+        return applications
                 .stream()
                 .map(ApplicationMapper::toApplicationResponseDto)
                 .toList();
@@ -114,25 +120,31 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public ApplicationResponseDto getApplicationById(Long id) {
 
-        Application application = applicationRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Application not found with id " + id
-                        )
-                );
+        Application application =
+                applicationRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Application not found with id " + id
+                                )
+                        );
+
         return ApplicationMapper.toApplicationResponseDto(application);
     }
 
     @Override
     public void deleteApplicationById(Long id) {
-        Application application = applicationRepository.findById(id)
+        Application application = applicationRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Application deleted successfully with Id : " + id
                         )
                 );
-        applicationRepository.delete(application);
+
+        application.setDeleted(true);
+        application.setDeletedAt(LocalDateTime.now());
+        applicationRepository.save(application);
+
+//        applicationRepository.delete(application);
+        
     }
-
-
 }

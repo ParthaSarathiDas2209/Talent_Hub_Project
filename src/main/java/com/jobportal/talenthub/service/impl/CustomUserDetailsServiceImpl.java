@@ -1,6 +1,7 @@
 package com.jobportal.talenthub.service.impl;
 
 import com.jobportal.talenthub.entity.User;
+import com.jobportal.talenthub.entity.UserStatus;
 import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.CustomUserDetailsService;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -27,12 +28,26 @@ public class CustomUserDetailsServiceImpl implements CustomUserDetailsService {
                         new UsernameNotFoundException("User not found with username : " + username)
                 );
 
+        if (user.isDeleted()) {
+            throw new UsernameNotFoundException(
+                    "User account is deleted."
+            );
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new UsernameNotFoundException(
+                    "User account is not active."
+            );
+        }
+
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority(
+                "ROLE_" + user.getRole().name()
+        );
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
-                List.of(
-                        new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
-                )
+                List.of(authority)
         );
     }
 }

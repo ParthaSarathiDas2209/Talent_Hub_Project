@@ -15,22 +15,24 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // Custom service that loads user details from database
+    // Loads the user from the database using the login username/email.
+    // Your CustomUserDetailsService ultimately calls UserRepository.findByEmail().
     private final CustomUserDetailsService customUserDetailsService;
 
-    // Used to encode passwords during registration
-    // and verify passwords during login
+    // BCrypt PasswordEncoder used to verify the password during authentication.
+    // During registration it can also encode a plain password before saving it.
     private final PasswordEncoder passwordEncoder;
 
-    // Custom JWT filter that validates JWT on every request
+    // Custom filter that checks the JWT from each incoming request.
+    // If the JWT is valid, it creates an authenticated SecurityContext.
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    // Constructor Injection
+    // Constructor Injection:
+    // Spring injects the required security dependencies into this class.
     public SecurityConfig(
             CustomUserDetailsService customUserDetailsService,
             PasswordEncoder passwordEncoder,
@@ -48,87 +50,144 @@ public class SecurityConfig {
 
         http
 
-                // Disable CSRF because JWT is Stateless.
-                // CSRF is mainly used with Session + Cookies.
+                // CSRF protection is disabled because this application
+                // uses stateless JWT authentication instead of session cookies.
                 .csrf(csrf -> csrf.disable())
 
-                // Configure Session Management
+
+                // Configure how Spring Security manages HTTP sessions.
                 .sessionManagement(session ->
 
-                        // Never create HTTP Session.
-                        // Every request must contain JWT.
+                        // STATELESS means Spring Security does not maintain
+                        // an authenticated server-side HTTP session.
+                        // Each protected request must provide its JWT.
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
-                // Configure Authorization Rules
+
+                // Define authentication and authorization rules.
                 .authorizeHttpRequests(
                         auth -> auth
 
-                                // Authentication APIs are public.
-                                // Register/Login doesn't require JWT.
+
+                                // Everything under /api/auth/** is public.
+                                // Therefore registration and login do not require JWT.
                                 .requestMatchers(
                                         "/api/auth/**"
-//                                        "/api/jobs/**"
                                 )
                                 .permitAll()
 
-//              ADMIN
+
+                                // ADMIN endpoints require ROLE_ADMIN.
+                                // hasRole("ADMIN") internally checks for
+                                // the authority ROLE_ADMIN.
                                 .requestMatchers("/api/admin/**")
                                 .hasRole("ADMIN")
 
-//              Jobs
+
+                                // ---------------- JOB RULES ----------------
+
+                                // Any authenticated user can view jobs.
+                                // Both JOB_SEEKER and RECRUITER can perform GET.
                                 .requestMatchers(HttpMethod.GET, "/api/jobs/**")
                                 .authenticated()
 
+
+                                // Only RECRUITER can create jobs.
                                 .requestMatchers(HttpMethod.POST, "/api/jobs/**")
                                 .hasRole("RECRUITER")
 
+
+                                // Only RECRUITER can completely update jobs.
                                 .requestMatchers(HttpMethod.PUT, "/api/jobs/**")
                                 .hasRole("RECRUITER")
 
+
+                                // Only RECRUITER can partially update jobs.
                                 .requestMatchers(HttpMethod.PATCH, "/api/jobs/**")
                                 .hasRole("RECRUITER")
 
+
+                                // Only RECRUITER can delete jobs.
                                 .requestMatchers(HttpMethod.DELETE, "/api/jobs/**")
                                 .hasRole("RECRUITER")
 
 
-//              Applications + Recruiter
-                                .requestMatchers(HttpMethod.GET, "/api/applications/recruiter")
+                                // -------- APPLICATION RULES --------
+
+                                // Only RECRUITER can view applications
+                                // through the recruiter-specific endpoint.
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/applications/recruiter"
+                                )
                                 .hasRole("RECRUITER")
 
-                                .requestMatchers(HttpMethod.POST, "/api/applications/**")
+
+                                // Only JOB_SEEKER can create an application.
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/applications/**"
+                                )
                                 .hasRole("JOB_SEEKER")
 
-                                .requestMatchers(HttpMethod.GET, "/api/applications/**")
+
+                                // Any authenticated user can access other
+                                // application GET endpoints.
+                                // The controller/service can apply additional
+                                // business-level ownership checks.
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/applications/**"
+                                )
                                 .authenticated()
 
-                                .requestMatchers(HttpMethod.PATCH, "/api/applications/*/status")
+
+                                // Only RECRUITER can update application status.
+                                // Example: APPLIED -> SHORTLISTED -> REJECTED.
+                                .requestMatchers(
+                                        HttpMethod.PATCH,
+                                        "/api/applications/*/status"
+                                )
                                 .hasRole("RECRUITER")
 
-                                .requestMatchers(HttpMethod.DELETE, "/api/applications/**")
+
+                                // Any authenticated user can reach the DELETE
+                                // application endpoint at the security layer.
+                                // Ownership/business rules should determine
+                                // whether that particular user may delete it.
+                                .requestMatchers(
+                                        HttpMethod.DELETE,
+                                        "/api/applications/**"
+                                )
                                 .authenticated()
 
-                                // Every other API requires authentication.
+
+                                // Catch-all rule:
+                                // Any request not matched above requires authentication.
                                 .anyRequest()
                                 .authenticated()
                 )
 
 
-                // Tell Spring which AuthenticationProvider
-                // should verify username & password.
+                // Tell Spring Security to use your custom AuthenticationProvider
+                // for username/password authentication.
                 .authenticationProvider(authenticationProvider())
 
-                // Run JWT Filter before Spring's
+
+                // Execute the JWT filter BEFORE Spring's standard
                 // UsernamePasswordAuthenticationFilter.
+                // This allows the JWT to authenticate the request before
+                // authorization rules are evaluated.
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
 
-        // Build complete Spring Security Filter Chain
+
+        // Build and return the complete Spring Security filter chain.
         return http.build();
     }
 
@@ -136,15 +195,18 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider() {
 
-        // DaoAuthenticationProvider handles
-        // username/password authentication.
+        // DaoAuthenticationProvider handles username/password authentication.
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider();
 
-        // Load user from database.
+
+        // Tell the provider to use your custom service to find the user.
+        // Your service searches the users table by email.
         provider.setUserDetailsService(customUserDetailsService);
 
-        // Verify password using BCrypt.
+
+        // Tell the provider to use BCrypt to verify the supplied password
+        // against the BCrypt hash stored in PostgreSQL.
         provider.setPasswordEncoder(passwordEncoder);
 
         return provider;
@@ -156,8 +218,8 @@ public class SecurityConfig {
             AuthenticationConfiguration configuration)
             throws Exception {
 
-        // Spring already creates AuthenticationManager.
-        // We simply obtain it from AuthenticationConfiguration.
+        // Spring Boot creates the AuthenticationManager.
+        // AuthenticationConfiguration gives us access to that manager.
         return configuration.getAuthenticationManager();
     }
 }
