@@ -19,15 +19,16 @@ import java.util.List;
 @Service
 public class UserServiceImpl implements UserService {
 
-    // Repository used to perform User database operations.
+    // Repository responsible for User database operations.
     private final UserRepository userRepository;
 
-    // Used to encode passwords securely using BCrypt.
+    // BCrypt encoder used to securely hash passwords
+    // before they are stored in the database.
     private final PasswordEncoder passwordEncoder;
 
 
-    // Constructor Injection:
-    // Spring injects the required dependencies.
+    // Constructor injection:
+    // Spring provides the required dependencies automatically.
     public UserServiceImpl(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder) {
@@ -37,11 +38,15 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    // =========================================================
+    // CREATE USER
+    // =========================================================
+
     @Override
     public UserResponseDto createUser(UserRequestDto userRequestDto) {
 
-        // STEP 1:
-        // Check whether the email is already registered.
+        // Check whether another user already uses this email.
+        // Email is unique in the database as well.
         if (userRepository.existsByEmail(userRequestDto.email())) {
 
             throw new JobApplicationException(
@@ -50,14 +55,12 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 2:
         // Convert the incoming DTO into a User entity.
         User user = UserMapper.toEntity(userRequestDto);
 
 
-        // STEP 3:
-        // Encode the plain-text password using BCrypt
-        // before storing it in the database.
+        // Encode the plain-text password before persistence.
+        // The database must never contain the plain password.
         user.setPassword(
                 passwordEncoder.encode(
                         userRequestDto.password()
@@ -65,35 +68,34 @@ public class UserServiceImpl implements UserService {
         );
 
 
-        // STEP 4:
-        // Newly created users start with ACTIVE status.
+        // New users start with ACTIVE status.
         user.setStatus(UserStatus.ACTIVE);
 
 
-        // STEP 5:
-        // Newly created users are not soft-deleted.
+        // New users are not soft-deleted.
         user.setDeleted(false);
         user.setDeletedAt(null);
 
 
-        // STEP 6:
-        // Save the new user in the database.
+        // Save the entity to PostgreSQL.
         User savedUser = userRepository.save(user);
 
 
-        // STEP 7:
-        // Return a response DTO instead of exposing the entity.
+        // Return a DTO instead of exposing the entity directly.
         return UserMapper.toResponseDto(savedUser);
     }
 
+
+    // =========================================================
+    // FULL UPDATE
+    // =========================================================
 
     @Override
     public UserResponseDto updateUser(
             Long id,
             UserRequestDto userRequestDto) {
 
-        // STEP 1:
-        // Find the user only if the user is not soft-deleted.
+        // Find only a non-deleted user.
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -102,9 +104,8 @@ public class UserServiceImpl implements UserService {
                 );
 
 
-        // STEP 2:
-        // Check whether the requested email belongs
-        // to another user.
+        // Check whether the new email already belongs to
+        // a different user.
         //
         // The current user's existing email is allowed.
         if (userRepository.existsByEmail(userRequestDto.email())
@@ -116,16 +117,13 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 3:
         // Update the user's basic information.
         user.setFirstName(userRequestDto.firstName());
         user.setLastName(userRequestDto.lastName());
         user.setEmail(userRequestDto.email());
 
 
-        // STEP 4:
-        // Encode the new password using BCrypt.
-        // Never store the plain-text password.
+        // Encode the new password before storing it.
         user.setPassword(
                 passwordEncoder.encode(
                         userRequestDto.password()
@@ -133,29 +131,29 @@ public class UserServiceImpl implements UserService {
         );
 
 
-        // STEP 5:
         // Update the user's role.
         user.setRole(userRequestDto.role());
 
 
-        // STEP 6:
-        // Save the updated user.
+        // Save the modified entity.
         User updatedUser = userRepository.save(user);
 
 
-        // STEP 7:
-        // Return the updated user as a response DTO.
+        // Return the updated data through a DTO.
         return UserMapper.toResponseDto(updatedUser);
     }
 
+
+    // =========================================================
+    // PARTIAL UPDATE
+    // =========================================================
 
     @Override
     public UserResponseDto patchUser(
             Long id,
             UserPatchDto userPatchDto) {
 
-        // STEP 1:
-        // Find the user only if the user is not soft-deleted.
+        // Find only a non-deleted user.
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -164,8 +162,7 @@ public class UserServiceImpl implements UserService {
                 );
 
 
-        // STEP 2:
-        // Update first name only when a value is provided.
+        // Update first name only when the client provides it.
         if (userPatchDto.firstName() != null) {
 
             user.setFirstName(
@@ -174,8 +171,7 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 3:
-        // Update last name only when a value is provided.
+        // Update last name only when the client provides it.
         if (userPatchDto.lastName() != null) {
 
             user.setLastName(
@@ -184,10 +180,7 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 4:
         // Check email uniqueness only when email is being changed.
-        //
-        // The current user's existing email is allowed.
         if (userPatchDto.email() != null
                 && userRepository.existsByEmail(userPatchDto.email())
                 && !user.getEmail().equals(userPatchDto.email())) {
@@ -198,8 +191,7 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 5:
-        // Update email only when a new value is provided.
+        // Update email only when supplied.
         if (userPatchDto.email() != null) {
 
             user.setEmail(
@@ -208,10 +200,8 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 6:
-        // Update password only when a new password is provided.
-        //
-        // The password is encoded before being stored.
+        // Update password only when supplied.
+        // The new password is encoded before persistence.
         if (userPatchDto.password() != null) {
 
             user.setPassword(
@@ -222,8 +212,7 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 7:
-        // Update role only when a new role is provided.
+        // Update role only when supplied.
         if (userPatchDto.role() != null) {
 
             user.setRole(
@@ -232,41 +221,45 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 8:
-        // Save the partially updated user.
+        // Save the partially modified entity.
         User updatedUser = userRepository.save(user);
 
 
-        // STEP 9:
-        // Return the updated user as a response DTO.
+        // Return the updated user through a DTO.
         return UserMapper.toResponseDto(updatedUser);
     }
 
 
+    // =========================================================
+    // GET ALL USERS
+    // =========================================================
+
     @Override
     public List<UserResponseDto> getAllUsers() {
 
-        // STEP 1:
-        // Fetch only users who have not been soft-deleted.
-        List<User> users = userRepository.findAllByDeletedFalse();
+        // Fetch only users that have not been soft-deleted.
+        List<User> users =
+                userRepository.findAllByDeletedFalse();
 
 
-        // STEP 2:
-        // Convert User entities into response DTOs.
+        // Convert every entity into a response DTO.
         //
-        // The DTO prevents sensitive entity data,
-        // such as the password, from being exposed.
+        // This also prevents sensitive fields such as password
+        // from being exposed through the API.
         return users.stream()
                 .map(UserMapper::toResponseDto)
                 .toList();
     }
 
 
+    // =========================================================
+    // GET USER BY ID
+    // =========================================================
+
     @Override
     public UserResponseDto getUserById(Long id) {
 
-        // STEP 1:
-        // Find the user only if the user is not soft-deleted.
+        // Find the user only if it has not been soft-deleted.
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -275,17 +268,19 @@ public class UserServiceImpl implements UserService {
                 );
 
 
-        // STEP 2:
-        // Convert the User entity into a response DTO.
+        // Convert entity into a safe response DTO.
         return UserMapper.toResponseDto(user);
     }
 
 
+    // =========================================================
+    // SOFT DELETE USER
+    // =========================================================
+
     @Override
     public void deleteUser(Long id) {
 
-        // STEP 1:
-        // Find the user only if the user is not already soft-deleted.
+        // Find only a user that has not already been soft-deleted.
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -294,8 +289,8 @@ public class UserServiceImpl implements UserService {
                 );
 
 
-        // STEP 2:
-        // Prevent deletion if the account has already been deleted.
+        // Defensive check in case this method is called directly
+        // without the repository's deleted=false condition.
         if (user.isDeleted()) {
 
             throw new JobApplicationException(
@@ -304,25 +299,53 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        // STEP 3:
-        // Mark the user as deleted instead of physically
-        // removing the database record.
+        // Soft delete:
+        // Keep the database row but mark the user as deleted.
         user.setDeleted(true);
 
 
-        // STEP 4:
-        // Store the exact date and time of the soft delete.
+        // Record exactly when the soft delete happened.
         user.setDeletedAt(LocalDateTime.now());
 
 
-        // STEP 5:
-        // Mark the account as DEACTIVATED because
-        // the user is no longer an active account.
+        // Deactivated users should no longer be treated
+        // as active accounts.
         user.setStatus(UserStatus.DEACTIVATED);
 
 
-        // STEP 6:
-        // Save the soft-delete information in the database.
+        // Persist the soft-delete changes.
         userRepository.save(user);
     }
+
+
+    // =========================================================
+    // FUTURE IMPROVEMENTS
+    // =========================================================
+
+    // 1. PATCH validation refinement:
+    //    UserPatchDto currently allows null fields, which is correct
+    //    for PATCH, but supplied non-null values should still satisfy
+    //    appropriate validation rules.
+    //
+    // 2. Ownership/security:
+    //    The service currently accepts a user ID.
+    //    Whether a normal user may update/delete that ID should be
+    //    controlled by the security/controller/business layer.
+    //
+    // 3. Role changes:
+    //    Changing ROLE_ADMIN/RECRUITER/JOB_SEEKER is a sensitive operation.
+    //    In a production application, normal users should generally
+    //    not be allowed to change their own role.
+    //
+    // 4. Password:
+    //    Password is correctly encoded before save.
+    //
+    // 5. updatedAt:
+    //    User already has @UpdateTimestamp, so Hibernate automatically
+    //    updates updatedAt when the entity is modified.
+    //
+    // 6. Soft delete:
+    //    The record remains in the database.
+    //    findAllByDeletedFalse() and findByIdAndDeletedFalse()
+    //    hide deleted users from normal operations.
 }

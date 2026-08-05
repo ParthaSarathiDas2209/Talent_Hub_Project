@@ -20,106 +20,212 @@ import java.util.List;
 @Service
 public class AdminServiceImpl implements AdminService {
 
+    // Repository used by the admin to manage users.
     private final UserRepository userRepository;
+
+    // Repository used by the admin to manage jobs.
     private final JobRepository jobRepository;
+
+    // Repository used by the admin to manage applications.
     private final ApplicationRepository applicationRepository;
 
-    public AdminServiceImpl(UserRepository userRepository, JobRepository jobRepository, ApplicationRepository applicationRepository) {
+
+    // Constructor Injection:
+    // Spring provides all required repositories.
+    public AdminServiceImpl(
+            UserRepository userRepository,
+            JobRepository jobRepository,
+            ApplicationRepository applicationRepository) {
+
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.applicationRepository = applicationRepository;
     }
 
 
+    // =========================================================
+    // GET ALL USERS
+    // =========================================================
+    //
+    // Admin can view all users that are not soft-deleted.
+
     @Override
     public List<UserResponseDto> getAllUsers() {
-        List<User> users = userRepository.findAllByDeletedFalse();
 
+        // Fetch only users where deleted = false.
+        List<User> users =
+                userRepository.findAllByDeletedFalse();
+
+        // Convert User entities into response DTOs.
+        //
+        // DTO prevents exposing sensitive entity information,
+        // especially the user's password.
         return users
                 .stream()
                 .map(UserMapper::toResponseDto)
                 .toList();
     }
 
+
+    // =========================================================
+    // GET USER BY ID
+    // =========================================================
+
     @Override
     public UserResponseDto getUsersById(Long id) {
 
-        User user = userRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id " + id
-                        )
-                );
+        // Find the requested user only if the user
+        // has not been soft-deleted.
+        User user =
+                userRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "User not found with id " + id
+                                )
+                        );
 
+        // Convert entity into response DTO.
         return UserMapper.toResponseDto(user);
     }
 
+
+    // =========================================================
+    // DELETE USER
+    // =========================================================
+    //
+    // Admin performs a soft delete instead of permanently
+    // removing the user from the database.
+
     @Override
     public void deleteUserById(Long id) {
-        User user = userRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id " + id
-                        )
-                );
+
+        // Find only an active/non-deleted user.
+        User user =
+                userRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "User not found with id " + id
+                                )
+                        );
+
+
+        // Mark the user as soft-deleted.
         user.setDeleted(true);
+
+        // Store when the deletion occurred.
         user.setDeletedAt(LocalDateTime.now());
+
+        // Change account status so the user
+        // can no longer operate as an active account.
         user.setStatus(UserStatus.DEACTIVATED);
 
+        // Save the soft-delete changes.
         userRepository.save(user);
     }
 
+
+    // =========================================================
+    // GET ALL JOBS
+    // =========================================================
+
     @Override
     public List<JobResponseDto> getAllJobs() {
-        List<Job> jobs = jobRepository.findAllByDeletedFalse();
+
+        // Fetch only jobs that have not been soft-deleted.
+        List<Job> jobs =
+                jobRepository.findAllByDeletedFalse();
+
+        // Convert Job entities into response DTOs.
         return jobs
                 .stream()
                 .map(JobMapper::toResponseDto)
                 .toList();
     }
 
+
+    // =========================================================
+    // GET JOB BY ID
+    // =========================================================
+
     @Override
     public JobResponseDto getJobById(Long id) {
 
-        Job job = jobRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job not found with id " + id
-                        )
-                );
+        // Find the job only if it has not been soft-deleted.
+        Job job =
+                jobRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Job not found with id " + id
+                                )
+                        );
 
+        // Convert entity into response DTO.
         return JobMapper.toResponseDto(job);
     }
 
+
+    // =========================================================
+    // DELETE JOB
+    // =========================================================
+    //
+    // Admin removes the job logically using soft delete.
+
     @Override
     public void deleteJobById(Long id) {
-        Job job = jobRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Job not found with id " + id
-                        )
-                );
 
+        // Find the requested job if it is not already deleted.
+        Job job =
+                jobRepository.findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Job not found with id " + id
+                                )
+                        );
+
+
+        // Mark the job as deleted.
         job.setDeleted(true);
+
+        // Record the deletion timestamp.
         job.setDeletedAt(LocalDateTime.now());
+
+        // Update the job status to DELETED.
         job.setStatus(JobStatus.DELETED);
 
+        // Persist the soft-delete changes.
         jobRepository.save(job);
     }
 
+
+    // =========================================================
+    // GET ALL APPLICATIONS
+    // =========================================================
+    //
+    // Admin can view applications across the entire system.
+
     @Override
     public List<ApplicationResponseDto> getAllApplications() {
+
+        // Fetch only applications that have not been soft-deleted.
         List<Application> applications =
                 applicationRepository.findAllByDeletedFalse();
+
+        // Convert Application entities into response DTOs.
         return applications
                 .stream()
                 .map(ApplicationMapper::toApplicationResponseDto)
                 .toList();
     }
 
+
+    // =========================================================
+    // GET APPLICATION BY ID
+    // =========================================================
+
     @Override
     public ApplicationResponseDto getApplicationById(Long id) {
 
+        // Find the application only if it has not been deleted.
         Application application =
                 applicationRepository.findByIdAndDeletedFalse(id)
                         .orElseThrow(() ->
@@ -128,23 +234,47 @@ public class AdminServiceImpl implements AdminService {
                                 )
                         );
 
-        return ApplicationMapper.toApplicationResponseDto(application);
+        // Convert entity into response DTO.
+        return ApplicationMapper
+                .toApplicationResponseDto(application);
     }
+
+
+    // =========================================================
+    // DELETE APPLICATION
+    // =========================================================
+    //
+    // Admin performs a soft delete.
+    // The database record remains available for historical
+    // or auditing purposes.
 
     @Override
     public void deleteApplicationById(Long id) {
-        Application application = applicationRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Application deleted successfully with Id : " + id
-                        )
-                );
 
+        // Find the application only if it has not already
+        // been soft-deleted.
+        Application application =
+                applicationRepository
+                        .findByIdAndDeletedFalse(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Application not found with id "
+                                                + id
+                                )
+                        );
+
+
+        // Mark the application as soft-deleted.
         application.setDeleted(true);
+
+        // Store the time when the application was deleted.
         application.setDeletedAt(LocalDateTime.now());
+
+        // Save the soft-delete information.
         applicationRepository.save(application);
 
-//        applicationRepository.delete(application);
-        
+        // Physical deletion is intentionally not used.
+        //
+        // applicationRepository.delete(application);
     }
 }

@@ -8,16 +8,48 @@ import java.util.List;
 
 public interface ApplicationService {
 
-    ApplicationResponseDto applyJob(ApplicationRequestDto applicationRequestDto, String email);
+    // =========================================================
+    // CANDIDATE / APPLICATION MANAGEMENT
+    // =========================================================
 
-    ApplicationResponseDto getApplicationById(Long id, String email);
+    // Apply the logged-in job seeker to a job.
+    ApplicationResponseDto applyJob(
+            ApplicationRequestDto applicationRequestDto,
+            String email
+    );
 
-    List<ApplicationResponseDto> getAllApplications(String email);
+    // Get a specific application owned by the logged-in user.
+    ApplicationResponseDto getApplicationById(
+            Long id,
+            String email
+    );
 
-    void deleteApplication(Long id, String email);
+    // Get all applications submitted by the logged-in user.
+    List<ApplicationResponseDto> getAllApplications(
+            String email
+    );
 
-    ApplicationResponseDto updateApplicationStatus(Long applicationId, ApplicationStatus applicationStatus, String email);
+    // Soft-delete/withdraw an application owned by the logged-in user.
+    void deleteApplication(
+            Long id,
+            String email
+    );
 
-    List<ApplicationResponseDto> getRecruiterApplications(String email);
 
+    // =========================================================
+    // RECRUITER APPLICATION MANAGEMENT
+    // =========================================================
+
+    // Update an application's status.
+    // Only the recruiter who owns the related job can perform this.
+    ApplicationResponseDto updateApplicationStatus(
+            Long applicationId,
+            ApplicationStatus applicationStatus,
+            String email
+    );
+
+    // Get all applications submitted to jobs owned by the logged-in recruiter.
+    List<ApplicationResponseDto> getRecruiterApplications(
+            String email
+    );
 }

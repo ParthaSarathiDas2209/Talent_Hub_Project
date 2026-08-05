@@ -19,22 +19,36 @@ import java.util.List;
 @Service
 public class JobServiceImpl implements JobService {
 
+    // Repository used for Job database operations.
     private final JobRepository jobRepository;
+
+    // Repository used to find the authenticated recruiter/user.
     private final UserRepository userRepository;
 
-    public JobServiceImpl(JobRepository jobRepository, UserRepository userRepository) {
+
+    // Constructor Injection:
+    // Spring injects the required repositories automatically.
+    public JobServiceImpl(
+            JobRepository jobRepository,
+            UserRepository userRepository) {
+
         this.jobRepository = jobRepository;
         this.userRepository = userRepository;
     }
 
-    @Override
-    public JobResponseDto createJob(JobRequestDto jobRequestDto,
-                                    String email) {
 
-        // ==========================================================
-        // STEP 1 : Find the currently logged-in recruiter.
-        // The email comes from the authenticated JWT token.
-        // ==========================================================
+    // =========================================================
+    // CREATE JOB
+    // =========================================================
+
+    @Override
+    public JobResponseDto createJob(
+            JobRequestDto jobRequestDto,
+            String email) {
+
+        // Find the currently authenticated recruiter.
+        //
+        // email comes from the authenticated user/JWT flow.
         User recruiter =
                 userRepository.findByEmail(email)
                         .orElseThrow(() ->
@@ -43,152 +57,127 @@ public class JobServiceImpl implements JobService {
                                 )
                         );
 
-        // ==========================================================
-        // STEP 2 : RECRUITER VALIDATION
-        // Ensure only ACTIVE recruiters can create jobs.
-        // ==========================================================
 
-        // Only recruiters can create jobs.
+        // Only users with RECRUITER role can create jobs.
         if (recruiter.getRole() != Role.RECRUITER) {
+
             throw new AccessDeniedException(
                     "Only recruiters can create jobs."
             );
         }
 
+
         // Recruiter's account must be ACTIVE.
         if (recruiter.getStatus() != UserStatus.ACTIVE) {
+
             throw new AccessDeniedException(
                     "Your account is not active."
             );
         }
 
-        // ==========================================================
-        // STEP 3 : Convert DTO → Entity.
-        // ==========================================================
-        Job job = JobMapper.toEntity(jobRequestDto);
-        
-        System.out.println("Start Time = " + jobRequestDto.applicationStartTime());
-        System.out.println("EndTime = " + jobRequestDto.applicationEndTime());
 
-        // ==========================================================
-        // STEP 4 : Validate application window.
-        // ==========================================================
+        // Convert validated request DTO into Job entity.
+        Job job = JobMapper.toEntity(jobRequestDto);
+
+
+        // Validate that the application start/end times
+        // form a valid application window.
         validateApplicationWindow(job);
 
-        // ==========================================================
-        // STEP 5 : Set recruiter and initial job status.
-        // ==========================================================
+
+        // Associate the authenticated recruiter with the job.
+        //
+        // IMPORTANT:
+        // Recruiter is taken from authentication,
+        // NOT from the request body.
         job.setRecruiter(recruiter);
+
+
+        // Newly created jobs are immediately ACTIVE
+        // in the current TalentHub design.
         job.setStatus(JobStatus.ACTIVE);
 
-        // ==========================================================
-        // STEP 6 : Save the job.
-        // ==========================================================
+
+        // Save the new Job entity.
         Job savedJob = jobRepository.save(job);
 
-        // ==========================================================
-        // STEP 7 : Convert Entity → DTO.
-        // ==========================================================
-        return JobMapper.toResponseDto(savedJob);
 
+        // Convert saved entity into a safe response DTO.
+        return JobMapper.toResponseDto(savedJob);
     }
 
-    // ==========================================================
-    // STEP 1 : Find the job using the job ID.
-    // This is the job that will be completely updated.
-    // ==========================================================
 
-    // ==========================================================
-    // STEP 2 : Find the currently logged-in recruiter.
-    // The email comes from the authenticated JWT token.
-    // ==========================================================
+    // =========================================================
+    // FULL UPDATE / PUT
+    // =========================================================
 
-    // ==========================================================
-    // STEP 3 : RECRUITER VALIDATION
-    // Ensure only ACTIVE recruiters can update jobs.
-    // ==========================================================
-
-    // Only recruiters can update jobs.
-
-    // Recruiter's account must be ACTIVE.
-
-
-    // ==========================================================
-    // STEP 4 : OWNERSHIP VALIDATION
-    // Ensure the logged-in recruiter owns this job.
-    // ==========================================================
-
-    // Job Recruiter
-    //        VS
-    // Logged-in Recruiter
-
-    // ==========================================================
-    // STEP 5 : JOB VALIDATION
-    // Deleted jobs cannot be updated.
-    // ==========================================================
-
-    // Deleted Job
-    //      ↓
-    // No further business operations allowed.
-
-    // ==========================================================
-    // STEP 6 : Replace all job fields.
-
-    // PUT replaces the entire resource with
-    // the new values received from the client.
-    // ==========================================================
-
-    // ==========================================================
-    // STEP 7 : Validate the updated application window.
-    // ==========================================================
-
-    // ==========================================================
-    // STEP 8 : Save the updated job.
-    // ==========================================================
-
-    // ==========================================================
-    // STEP 9 : Convert Entity → Response DTO and return it.
-    // ==========================================================
     @Override
-    public JobResponseDto updateJob(Long id, JobRequestDto jobRequestDto, String email) {
+    public JobResponseDto updateJob(
+            Long id,
+            JobRequestDto jobRequestDto,
+            String email) {
+
+        // Find the requested job.
         Job job = jobRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Job not found with id : " + id)
-                );
-
-        User loggedInUser = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Logged-in recruiter not found with email: " + email
+                                "Job not found with id : " + id
                         )
                 );
 
+
+        // Find the currently authenticated user.
+        User loggedInUser =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Logged-in recruiter not found with email: " + email
+                                )
+                        );
+
+
+        // Only recruiters can update jobs.
         if (loggedInUser.getRole() != Role.RECRUITER) {
+
             throw new AccessDeniedException(
                     "Only Recruiters can update this job."
             );
         }
 
+
+        // Recruiter's account must be ACTIVE.
         if (loggedInUser.getStatus() != UserStatus.ACTIVE) {
+
             throw new AccessDeniedException(
                     "Your account is not active."
             );
         }
 
+
+        // Ownership check:
+        // Only the recruiter who created the job
+        // can update that job.
         if (!job.getRecruiter().getId()
                 .equals(loggedInUser.getId())) {
+
             throw new AccessDeniedException(
                     "You are not allowed to update this Job"
             );
         }
 
+
+        // A soft-deleted job cannot be modified.
         if (job.isDeleted()) {
+
             throw new JobApplicationException(
                     "This Job has already been deleted."
             );
         }
 
+
+        // PUT/full update:
+        // Replace the existing job fields with the
+        // values supplied in the request.
         job.setTitle(jobRequestDto.title());
         job.setDescription(jobRequestDto.description());
         job.setCompanyName(jobRequestDto.companyName());
@@ -196,131 +185,119 @@ public class JobServiceImpl implements JobService {
         job.setCompanyPhone(jobRequestDto.companyPhone());
         job.setLocation(jobRequestDto.location());
         job.setSalary(jobRequestDto.salary());
-        job.setApplicationStartTime(jobRequestDto.applicationStartTime());
-        job.setApplicationEndTime(jobRequestDto.applicationEndTime());
 
+        job.setApplicationStartTime(
+                jobRequestDto.applicationStartTime()
+        );
+
+        job.setApplicationEndTime(
+                jobRequestDto.applicationEndTime()
+        );
+
+
+        // Revalidate the application window after updating it.
         validateApplicationWindow(job);
 
+
+        // Save the updated job.
         Job updatedJob = jobRepository.save(job);
+
+
+        // Return updated job as a response DTO.
         return JobMapper.toResponseDto(updatedJob);
     }
 
 
-    // ==========================================================
-    // STEP 1 : Fetch all jobs that are NOT deleted.
-    //
-    // Deleted jobs should never be shown
-    // to end users.
-    // ==========================================================
+    // =========================================================
+    // GET ALL JOBS
+    // =========================================================
 
-    // Convert every Job entity into JobResponseDto
-    // before returning the response.
     @Override
     public List<JobResponseDto> getAllJobs() {
-        return jobRepository.findAllByDeletedFalse()
-                .stream()
+
+        // Fetch only jobs that have NOT been soft-deleted.
+        List<Job> jobs =
+                jobRepository.findAllByDeletedFalse();
+
+
+        // Convert each Job entity into JobResponseDto.
+        return jobs.stream()
                 .map(JobMapper::toResponseDto)
                 .toList();
     }
 
-    // ==========================================================
-    // STEP 1 : Find the job using the job ID.
-    // This is the job that will be partially updated.
-    // ==========================================================
 
-    // ==========================================================
-    // STEP 2 : Find the currently logged-in recruiter.
-    // The email comes from the authenticated JWT token.
-    // ==========================================================
+    // =========================================================
+    // PATCH / PARTIAL UPDATE
+    // =========================================================
 
-    // ==========================================================
-    // STEP 3 : RECRUITER VALIDATION
-    // Ensure only ACTIVE recruiters can update jobs.
-    // ==========================================================
-
-    // Only recruiters can update jobs.
-
-    // Recruiter's account must be ACTIVE.
-
-    // ==========================================================
-    // STEP 4 : OWNERSHIP VALIDATION
-    // Ensure the logged-in recruiter owns this job.
-    // ==========================================================
-
-    // Job Recruiter
-    //        VS
-    // Logged-in Recruiter
-
-    // ==========================================================
-    // STEP 5 : JOB VALIDATION
-    // Deleted jobs cannot be updated.
-    // ==========================================================
-
-    // Deleted Job
-    //      ↓
-    // No further business operations allowed.
-
-    // ==========================================================
-    // STEP 6 : UPDATE ONLY PROVIDED FIELDS.
-    //
-    // PATCH updates only the fields present
-    // in the request body.
-    //
-    // Fields not provided remain unchanged.
-    // ==========================================================
-
-    // ==========================================================
-    // STEP 7 : Validate the updated application window.
-    // ==========================================================
-
-    // ==========================================================
-    // STEP 8 : Save the updated job.
-    // ==========================================================
-
-
-    // ==========================================================
-    // STEP 9 : Convert Entity → Response DTO and return it.
-    // ==========================================================
     @Override
-    public JobResponseDto patchJob(Long id, JobPatchDto jobPatchDto,
-                                   String email) {
+    public JobResponseDto patchJob(
+            Long id,
+            JobPatchDto jobPatchDto,
+            String email) {
+
+        // Find the job that should be partially updated.
         Job job = jobRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Job not found with id : " + id)
-                );
-
-        User loggedInUser = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Logged-in recruiter not found with email: " + email
+                                "Job not found with id : " + id
                         )
                 );
 
+
+        // Find the currently authenticated recruiter.
+        User loggedInUser =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Logged-in recruiter not found with email: " + email
+                                )
+                        );
+
+
+        // Only recruiters can modify jobs.
         if (loggedInUser.getRole() != Role.RECRUITER) {
+
             throw new AccessDeniedException(
                     "Only recruiters can update jobs."
             );
         }
 
+
+        // Recruiter's account must be ACTIVE.
         if (loggedInUser.getStatus() != UserStatus.ACTIVE) {
+
             throw new AccessDeniedException(
                     "Your account is not active."
             );
         }
 
+
+        // Ownership check:
+        // Recruiter can modify only their own job.
         if (!job.getRecruiter().getId()
                 .equals(loggedInUser.getId())) {
+
             throw new AccessDeniedException(
                     "You are not allowed to update this Job"
             );
         }
 
+
+        // Soft-deleted jobs cannot be modified.
         if (job.isDeleted()) {
+
             throw new JobApplicationException(
                     "This Job has already been deleted."
             );
         }
+
+
+        // PATCH:
+        // Update only fields that were supplied.
+        //
+        // null means "keep the existing value".
 
         if (jobPatchDto.title() != null) {
             job.setTitle(jobPatchDto.title());
@@ -351,88 +328,65 @@ public class JobServiceImpl implements JobService {
         }
 
         if (jobPatchDto.applicationStartTime() != null) {
+
             job.setApplicationStartTime(
                     jobPatchDto.applicationStartTime()
             );
         }
 
         if (jobPatchDto.applicationEndTime() != null) {
+
             job.setApplicationEndTime(
                     jobPatchDto.applicationEndTime()
             );
         }
 
+
+        // Validate the complete application window
+        // after applying the partial changes.
         validateApplicationWindow(job);
 
+
+        // Save the partially updated job.
         Job savedJob = jobRepository.save(job);
 
+
+        // Convert entity into response DTO.
         return JobMapper.toResponseDto(savedJob);
     }
 
-    // ==========================================================
-    // STEP 1 : Find the requested job.
 
-    // Throw an exception if the job does not exist.
-    // ==========================================================
-
-    // ==========================================================
-    // STEP 2 : Convert Entity → Response DTO.
-    // ==========================================================
+    // =========================================================
+    // GET JOB BY ID
+    // =========================================================
 
     @Override
     public JobResponseDto getJobById(Long id) {
+
+        // Find the requested job.
         Job job = jobRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Job not found with id : " + id
-                        ));
+                        )
+                );
 
+
+        // Convert entity into response DTO.
         return JobMapper.toResponseDto(job);
     }
 
-    // ==========================================================
-    // STEP 1 : Find the job using the job ID.
-    // This is the job that will be deleted.
-    // ==========================================================
 
-    // ==========================================================
-    // STEP 2 : Find the currently logged-in recruiter.
-    // The email comes from the authenticated JWT token.
-    // ==========================================================
+    // =========================================================
+    // SOFT DELETE JOB
+    // =========================================================
 
-    // ==========================================================
-    // STEP 3 : OWNERSHIP VALIDATION
-    // Ensure the logged-in recruiter owns this job.
-    // ==========================================================
-
-    // Job Recruiter
-    //        VS
-    // Logged-in Recruiter
-
-    // ==========================================================
-    // STEP 4 : SOFT DELETE
-
-    // Instead of removing the record permanently,
-    // mark the job as deleted.
-
-    // ACTIVE
-    //     ↓
-    // DELETED
-    //
-    // This preserves historical records.
-    // ==========================================================
-
-    // ==========================================================
-    // STEP 5 : Save the updated job.
-    // ==========================================================
     @Override
-    public void deleteJob(Long id, String email) {
-//        if (jobRepository.existsById(id)) {
-//            jobRepository.deleteById(id);
-//        } else {
-//            throw new ResourceNotFoundException("Job not found with id : " + id);
-//        }
+    public void deleteJob(
+            Long id,
+            String email) {
 
+        // Find the job that should be deleted.
         Job job = jobRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -440,47 +394,58 @@ public class JobServiceImpl implements JobService {
                         )
                 );
 
-        User loggedInUser = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Logged-in recruiter not found with email : " + email
-                        )
-                );
 
+        // Find the currently authenticated recruiter.
+        User loggedInUser =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Logged-in recruiter not found with email : " + email
+                                )
+                        );
+
+
+        // Ownership check:
+        // Only the recruiter who owns the job
+        // can delete it.
         if (!job.getRecruiter().getId()
                 .equals(loggedInUser.getId())) {
+
             throw new AccessDeniedException(
                     "You are not allowed to delete this Job"
             );
         }
 
-//        jobRepository.delete(job);
 
+        // Soft delete:
+        // Keep the database record but mark it as deleted.
         job.setDeleted(true);
+
+
+        // Store the exact date/time when the job was deleted.
         job.setDeletedAt(LocalDateTime.now());
+
+
+        // Change the business status to DELETED.
         job.setStatus(JobStatus.DELETED);
 
+
+        // Persist the soft-delete changes.
         jobRepository.save(job);
     }
 
-    // ==========================================================
+
+    // =========================================================
     // APPLICATION WINDOW VALIDATION
-    //
-    // Ensure the application window is valid.
-    //
-    // Application Start Time
-    //           ↓
-    // Must be BEFORE
-    //           ↓
-    // Application End Time
-    //
-    // Otherwise,
-    // reject the request.
-    // ==========================================================
+    // =========================================================
+
     private void validateApplicationWindow(Job job) {
 
+        // Application end time cannot be before
+        // application start time.
         if (job.getApplicationEndTime()
                 .isBefore(job.getApplicationStartTime())) {
+
             throw new JobApplicationException(
                     "Application end time must be after application start time."
             );

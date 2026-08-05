@@ -7,7 +7,25 @@ import com.jobportal.talenthub.dto.UserResponseDto;
 
 public interface AuthService {
 
-    UserResponseDto register(UserRequestDto userRequestDto);
+    // =========================================================
+    // REGISTRATION
+    // =========================================================
 
-    AuthResponseDto login(LoginRequestDto loginRequestDto);
+    // Register a new user account.
+    // Handles validation, password encoding and user creation
+    // through AuthServiceImpl.
+    UserResponseDto register(
+            UserRequestDto userRequestDto
+    );
+
+
+    // =========================================================
+    // LOGIN
+    // =========================================================
+
+    // Authenticate the user and return a JWT along with
+    // basic authenticated-user information.
+    AuthResponseDto login(
+            LoginRequestDto loginRequestDto
+    );
 }

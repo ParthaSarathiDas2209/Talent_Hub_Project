@@ -21,21 +21,23 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    // Handles authentication using email and password.
+    // AuthenticationManager is responsible for verifying
+    // the supplied email and password through Spring Security.
     private final AuthenticationManager authenticationManager;
 
-    // Used to find and save users in the database.
+    // Repository used to check existing users during registration
+    // and retrieve users during login.
     private final UserRepository userRepository;
 
-    // Used to securely encode passwords using BCrypt.
+    // BCrypt PasswordEncoder used to securely hash passwords.
     private final PasswordEncoder passwordEncoder;
 
-    // Used to generate JWT after successful authentication.
+    // JwtService generates the JWT after successful authentication.
     private final JwtService jwtService;
 
 
     // Constructor Injection:
-    // Spring injects all required authentication dependencies.
+    // Spring automatically provides all required dependencies.
     public AuthServiceImpl(
             AuthenticationManager authenticationManager,
             UserRepository userRepository,
@@ -49,11 +51,30 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+    // =========================================================
+    // REGISTER USER
+    // =========================================================
+    //
+    // Flow:
+    //
+    // UserRequestDto
+    //       ↓
+    // Check email
+    //       ↓
+    // Convert DTO → Entity
+    //       ↓
+    // Encode password
+    //       ↓
+    // Set account defaults
+    //       ↓
+    // Save User
+    //       ↓
+    // Return UserResponseDto
+
     @Override
     public UserResponseDto register(UserRequestDto userRequestDto) {
 
-        // STEP 1:
-        // Check whether the email is already registered.
+        // Prevent registration with an email that already exists.
         if (userRepository.existsByEmail(userRequestDto.email())) {
 
             throw new JobApplicationException(
@@ -62,14 +83,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
 
-        // STEP 2:
-        // Convert registration DTO into User entity.
+        // Convert the incoming registration DTO
+        // into a User entity.
         User user = UserMapper.toEntity(userRequestDto);
 
 
-        // STEP 3:
-        // Never store the plain-text password.
-        // Encode the password using BCrypt before saving.
+        // Never store a plain-text password.
+        // BCrypt hashes the password before it reaches the database.
         user.setPassword(
                 passwordEncoder.encode(
                         userRequestDto.password()
@@ -77,46 +97,58 @@ public class AuthServiceImpl implements AuthService {
         );
 
 
-        // STEP 4:
-        // New users start with ACTIVE status.
+        // Newly registered users start as ACTIVE.
         user.setStatus(UserStatus.ACTIVE);
 
 
-        // STEP 5:
-        // New users are not deleted.
+        // Newly registered users are not soft-deleted.
         user.setDeleted(false);
         user.setDeletedAt(null);
 
 
-        // STEP 6:
-        // Save the new user in the database.
+        // Persist the new user.
         User savedUser = userRepository.save(user);
 
 
-        // STEP 7:
-        // Return a response DTO instead of exposing the entity.
-        // The response DTO does not contain the password.
+        // Return a DTO instead of exposing the User entity.
+        // The response DTO intentionally does not contain
+        // the user's password.
         return UserMapper.toResponseDto(savedUser);
     }
 
+
+    // =========================================================
+    // LOGIN USER
+    // =========================================================
+    //
+    // Flow:
+    //
+    // LoginRequestDto
+    //       ↓
+    // AuthenticationManager
+    //       ↓
+    // UserDetailsService
+    //       ↓
+    // Load user
+    //       ↓
+    // Verify BCrypt password
+    //       ↓
+    // Check account status
+    //       ↓
+    // Generate JWT
+    //       ↓
+    // Return AuthResponseDto
 
     @Override
     public AuthResponseDto login(LoginRequestDto loginRequestDto) {
 
         try {
 
-            // STEP 1:
-            // Authenticate the user's email and password.
+            // Ask Spring Security to authenticate
+            // the supplied email and password.
             //
-            // AuthenticationManager
-            //        ↓
-            // DaoAuthenticationProvider
-            //        ↓
-            // CustomUserDetailsService
-            //        ↓
-            // Find user by email
-            //        ↓
-            // BCrypt password verification
+            // The UsernamePasswordAuthenticationToken
+            // carries the credentials into Spring Security.
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequestDto.email(),
@@ -126,18 +158,22 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (AuthenticationException exception) {
 
-            // STEP 2:
-            // Convert Spring Security authentication failure
-            // into the application's custom exception.
+            // Hide the exact authentication failure reason
+            // from the client.
+            //
+            // For example, do not reveal whether the email
+            // or password was incorrect.
             throw new InvalidCredentialsException(
                     "Invalid E-mail or Password."
             );
         }
 
 
-        // STEP 3:
-        // Find the authenticated user from the database.
-        User user = userRepository.findByEmail(loginRequestDto.email())
+        // Authentication succeeded.
+        // Retrieve the actual User entity from the database
+        // so we can obtain its ID, role and account status.
+        User user = userRepository
+                .findByEmail(loginRequestDto.email())
                 .orElseThrow(() ->
                         new InvalidCredentialsException(
                                 "Invalid e-mail or password"
@@ -145,8 +181,7 @@ public class AuthServiceImpl implements AuthService {
                 );
 
 
-        // STEP 4:
-        // Prevent deleted users from logging in.
+        // A soft-deleted account must not be allowed to log in.
         if (user.isDeleted()) {
 
             throw new InvalidCredentialsException(
@@ -155,11 +190,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
 
-        // STEP 5:
-        // Only ACTIVE users are allowed to log in.
+        // Only ACTIVE accounts are allowed to receive a JWT.
         //
-        // INACTIVE, SUSPENDED and DEACTIVATED users
-        // cannot receive a JWT.
+        // INACTIVE
+        // SUSPENDED
+        // DEACTIVATED
+        //
+        // cannot successfully log in.
         if (user.getStatus() != UserStatus.ACTIVE) {
 
             throw new InvalidCredentialsException(
@@ -168,16 +205,20 @@ public class AuthServiceImpl implements AuthService {
         }
 
 
-        // STEP 6:
-        // Generate JWT only after all authentication
-        // and account-status checks have passed.
+        // Generate the JWT only after:
+        //
+        // 1. Credentials are valid
+        // 2. User exists
+        // 3. User is not deleted
+        // 4. User account is ACTIVE
         String token = jwtService.generateToken(
                 user.getEmail()
         );
 
 
-        // STEP 7:
-        // Return JWT along with basic user information.
+        // Return the JWT and safe user information.
+        //
+        // Password is intentionally NOT included.
         return new AuthResponseDto(
                 token,
                 user.getId(),

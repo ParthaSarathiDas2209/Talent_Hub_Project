@@ -8,16 +8,39 @@ import java.util.List;
 
 public interface JobService {
 
-    JobResponseDto createJob(JobRequestDto jobRequestDto, String email);
+    // =========================================================
+    // JOB MANAGEMENT
+    // =========================================================
 
-    JobResponseDto updateJob(Long id, JobRequestDto jobRequestDto, String email);
+    // Create a new job for the logged-in recruiter.
+    JobResponseDto createJob(
+            JobRequestDto jobRequestDto,
+            String email
+    );
 
+    // Fully update an existing job owned by the logged-in recruiter.
+    JobResponseDto updateJob(
+            Long id,
+            JobRequestDto jobRequestDto,
+            String email
+    );
+
+    // Get all jobs that are not soft-deleted.
     List<JobResponseDto> getAllJobs();
 
-    JobResponseDto patchJob(Long id, JobPatchDto jobPatchDto, String email);
+    // Partially update selected fields of a job.
+    JobResponseDto patchJob(
+            Long id,
+            JobPatchDto jobPatchDto,
+            String email
+    );
 
+    // Get a specific job by ID.
     JobResponseDto getJobById(Long id);
 
-    void deleteJob(Long id, String email);
-
+    // Soft-delete a job owned by the logged-in recruiter.
+    void deleteJob(
+            Long id,
+            String email
+    );
 }

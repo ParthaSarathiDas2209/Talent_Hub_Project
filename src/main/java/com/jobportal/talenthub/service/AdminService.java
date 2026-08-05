@@ -8,25 +8,44 @@ import java.util.List;
 
 public interface AdminService {
 
-    //  Users
+    // =========================================================
+    // USER MANAGEMENT
+    // =========================================================
+
+    // Get all users that are not soft-deleted.
     List<UserResponseDto> getAllUsers();
 
+    // Get a specific user by ID.
     UserResponseDto getUsersById(Long id);
 
+    // Soft-delete a user by ID.
     void deleteUserById(Long id);
 
-    //  Job
+
+    // =========================================================
+    // JOB MANAGEMENT
+    // =========================================================
+
+    // Get all jobs that are not soft-deleted.
     List<JobResponseDto> getAllJobs();
 
+    // Get a specific job by ID.
     JobResponseDto getJobById(Long id);
 
+    // Soft-delete a job by ID.
     void deleteJobById(Long id);
 
-//  Applications
 
+    // =========================================================
+    // APPLICATION MANAGEMENT
+    // =========================================================
+
+    // Get all applications that are not soft-deleted.
     List<ApplicationResponseDto> getAllApplications();
 
+    // Get a specific application by ID.
     ApplicationResponseDto getApplicationById(Long id);
 
+    // Soft-delete an application by ID.
     void deleteApplicationById(Long id);
 }
