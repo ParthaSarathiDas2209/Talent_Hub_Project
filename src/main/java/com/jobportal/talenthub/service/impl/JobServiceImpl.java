@@ -118,7 +118,7 @@ public class JobServiceImpl implements JobService {
             String email) {
 
         // Find the requested job.
-        Job job = jobRepository.findById(id)
+        Job job = jobRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Job not found with id : " + id
@@ -238,7 +238,7 @@ public class JobServiceImpl implements JobService {
             String email) {
 
         // Find the job that should be partially updated.
-        Job job = jobRepository.findById(id)
+        Job job = jobRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Job not found with id : " + id
@@ -364,7 +364,7 @@ public class JobServiceImpl implements JobService {
     public JobResponseDto getJobById(Long id) {
 
         // Find the requested job.
-        Job job = jobRepository.findById(id)
+        Job job = jobRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Job not found with id : " + id
@@ -387,7 +387,7 @@ public class JobServiceImpl implements JobService {
             String email) {
 
         // Find the job that should be deleted.
-        Job job = jobRepository.findById(id)
+        Job job = jobRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Job not found with id :" + id

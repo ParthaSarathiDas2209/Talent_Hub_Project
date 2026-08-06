@@ -103,7 +103,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 
         // Find the job selected by the applicant.
-        Job job = jobRepository.findById(
+        Job job = jobRepository.findByIdAndDeletedFalse(
                         applicationRequestDto.jobId()
                 )
                 .orElseThrow(() ->
@@ -222,7 +222,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         // Find the requested application.
         Application application =
-                applicationRepository.findById(id)
+                applicationRepository.findByIdAndDeletedFalse(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Application not found with id: "
@@ -309,7 +309,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         // Find the application.
         Application application =
-                applicationRepository.findById(id)
+                applicationRepository.findByIdAndDeletedFalse(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Application not found with id: "
@@ -395,7 +395,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         // Find the application whose status will be changed.
         Application application =
-                applicationRepository.findById(applicationId)
+                applicationRepository.findByIdAndDeletedFalse(applicationId)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Application not found with id: "

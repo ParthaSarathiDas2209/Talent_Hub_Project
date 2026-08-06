@@ -108,11 +108,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String email =
                 jwtService.extractEmail(jwt);
 
-
 //        System.out.println(
 //                "Email extracted: " + email
 //        );
-
 
         // STEP 5:
         // Continue authentication only when:
@@ -123,7 +121,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder
                         .getContext()
                         .getAuthentication() == null) {
-
 
             // STEP 6:
             // Load the latest user information from the database.
