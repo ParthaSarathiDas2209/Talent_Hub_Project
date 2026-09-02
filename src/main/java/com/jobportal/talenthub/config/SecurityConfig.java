@@ -19,302 +19,289 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // Loads the user from the database during authentication.
-    // CustomUserDetailsService ultimately searches the user by email.
+    // ==============================
+    // AUTHENTICATION DEPENDENCIES
+    // ==============================
     private final CustomUserDetailsService customUserDetailsService;
-
-    // BCrypt encoder used to verify passwords during authentication.
-    // It can also be used to encode passwords before storing them.
     private final PasswordEncoder passwordEncoder;
-
-    // Custom filter responsible for extracting and validating
-    // the JWT from incoming requests.
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-
-    // Constructor Injection:
-    // Spring injects all required security dependencies.
-    public SecurityConfig(
-            CustomUserDetailsService customUserDetailsService,
-            PasswordEncoder passwordEncoder,
-            JwtAuthenticationFilter jwtAuthenticationFilter) {
-
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService, PasswordEncoder passwordEncoder, JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
 
-    // Defines the main Spring Security filter chain.
-    // This method controls authentication, authorization,
-    // session management, CSRF and JWT filter placement.
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http) throws Exception {
 
         http
-
-                // Disable CSRF because the application uses
-                // stateless JWT authentication instead of
-                // traditional session-cookie authentication.
+                // ==============================
+                // CSRF
+                // ==============================
                 .csrf(csrf -> csrf.disable())
 
-
-                // Configure HTTP session management.
+                // ==============================
+                // SESSION MANAGEMENT
+                // ==============================
                 .sessionManagement(session ->
-
-                        // STATELESS means Spring Security does not
-                        // maintain a server-side login session.
-                        //
-                        // Each protected request must carry
-                        // a valid JWT.
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
+                // ==============================
+                // AUTHORIZATION
+                // ==============================
+                .authorizeHttpRequests(auth -> auth
 
-                // Configure authorization rules for endpoints.
-                .authorizeHttpRequests(
-                        auth -> auth
+                        // ==============================
+                        // PUBLIC AUTHENTICATION ENDPOINTS
+                        // ==============================
+                        .requestMatchers("/api/auth/**")
+                        .permitAll()
 
+                        // ==============================
+                        // PUBLIC SWAGGER ENDPOINTS
+                        // ==============================
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        )
+                        .permitAll()
 
-                                // Authentication endpoints are public.
-                                //
-                                // Register:
-                                // POST /api/auth/register
-                                //
-                                // Login:
-                                // POST /api/auth/login
-                                //
-                                // These endpoints cannot require JWT
-                                // because the user does not have one yet.
-                                .requestMatchers(
-                                        "/api/auth/**"
-                                )
-                                .permitAll()
-
-
-                                // All admin endpoints require
-                                // the ADMIN role.
-                                //
-                                // hasRole("ADMIN") internally checks
-                                // for the authority ROLE_ADMIN.
-                                .requestMatchers("/api/admin/**")
-                                .hasRole("ADMIN")
+                        // ==============================
+                        // ADMIN ENDPOINTS
+                        // ==============================
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
 
 
-                                // ==============================
-                                // JOB ENDPOINTS
-                                // ==============================
+                        // ==============================
+                        // JOB SEEKER DASHBOARD
+                        // ==============================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/dashboard/job-seeker"
+                        )
+                        .hasRole("JOB_SEEKER")
 
-                                // Any authenticated user can view jobs.
-                                //
-                                // JOB_SEEKER and RECRUITER can perform GET.
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/jobs/**"
-                                )
-                                .authenticated()
-
-
-                                // Only recruiters can create jobs.
-                                .requestMatchers(
-                                        HttpMethod.POST,
-                                        "/api/jobs/**"
-                                )
-                                .hasRole("RECRUITER")
+                        // ==============================
+                        // RECRUITER DASHBOARD
+                        // ==============================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/dashboard/recruiter"
+                        )
+                        .hasRole("RECRUITER")
 
 
-                                // Only recruiters can completely
-                                // update existing jobs.
-                                .requestMatchers(
-                                        HttpMethod.PUT,
-                                        "/api/jobs/**"
-                                )
-                                .hasRole("RECRUITER")
+                        // ==============================
+                        // ADMIN DASHBOARD
+                        // ==============================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/dashboard/admin"
+                        )
+                        .hasRole("ADMIN")
+
+                        // ==============================
+                        // JOB ENDPOINTS
+                        // ==============================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/jobs/**"
+                        )
+                        .authenticated()
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/jobs/**"
+                        )
+                        .hasRole("RECRUITER")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/jobs/**"
+                        )
+                        .hasRole("RECRUITER")
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/jobs/**"
+                        )
+                        .hasRole("RECRUITER")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/jobs/**"
+                        )
+                        .hasRole("RECRUITER")
 
 
-                                // Only recruiters can partially
-                                // update existing jobs.
-                                .requestMatchers(
-                                        HttpMethod.PATCH,
-                                        "/api/jobs/**"
-                                )
-                                .hasRole("RECRUITER")
+                        // ==============================
+                        // APPLICATION ENDPOINTS
+                        // ==============================
+
+                        // Only JobSeekers can apply for jobs.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/applications"
+                        )
+                        .hasRole("JOB_SEEKER")
+
+                        // Only recruiter can view applications.
+                        // submitted to their jobs
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/applications/recruiter"
+                        )
+                        .hasRole("RECRUITER")
+
+                        // Authenticated users can view applications.
+                        // Ownership is checked in the service layer.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/applications/**"
+                        )
+                        .authenticated()
+
+                        // Only recruiters can update application status.
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/applications/*/status"
+                        )
+                        .hasRole("RECRUITER")
+
+                        // Authenticated users can delete applications.
+                        // Ownership is checked in the service layer.
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/applications/**"
+                        )
+                        .authenticated()
+
+                        // ==============================
+                        // NOTIFICATION ENDPOINTS
+                        // ==============================
+
+                        // Authenticated users can view their notifications.
+                        // The logged-in user is identified from Authentication.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/notifications"
+                        )
+                        .authenticated()
+
+                        // Authenticated users can mark their own notification as read.
+                        // Ownership is checked using the logged-in user.
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/notifications/*/read"
+                        )
+                        .authenticated()
+
+                        // Authenticated users can check their unread notification count.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/notifications/unread/count"
+                        )
+                        .authenticated()
+
+                        // ==============================
+                        // USER ENDPOINTS
+                        // ==============================
+
+                        // Authenticated users can access user endpoints.
+                        // Ownership and business rules are handled
+                        // in the service layer.
+                        .requestMatchers(
+                                "/api/users/**"
+                        )
+                        .authenticated()
 
 
-                                // Only recruiters can delete jobs.
-                                .requestMatchers(
-                                        HttpMethod.DELETE,
-                                        "/api/jobs/**"
-                                )
-                                .hasRole("RECRUITER")
+                        // ==============================
+                        // DEFAULT RULE
+                        // ==============================
 
-
-                                // ==============================
-                                // APPLICATION ENDPOINTS
-                                // ==============================
-
-                                // Only recruiters can access the
-                                // recruiter-specific application list.
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/applications/recruiter"
-                                )
-                                .hasRole("RECRUITER")
-
-
-                                // Only job seekers can create applications.
-                                .requestMatchers(
-                                        HttpMethod.POST,
-                                        "/api/applications/**"
-                                )
-                                .hasRole("JOB_SEEKER")
-
-
-                                // Any authenticated user can reach
-                                // application GET endpoints.
-                                //
-                                // Service-layer ownership checks decide
-                                // whether the user can actually view
-                                // the requested application.
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/applications/**"
-                                )
-                                .authenticated()
-
-
-                                // Only recruiters can update application status.
-                                //
-                                // Example:
-                                // APPLIED → SHORTLISTED
-                                // SHORTLISTED → INTERVIEWED
-                                // INTERVIEWED → ACCEPTED
-                                .requestMatchers(
-                                        HttpMethod.PATCH,
-                                        "/api/applications/*/status"
-                                )
-                                .hasRole("RECRUITER")
-
-
-                                // Any authenticated user can reach
-                                // the DELETE application endpoint.
-                                //
-                                // The service layer performs the ownership
-                                // check to determine whether the user
-                                // can actually delete that application.
-                                .requestMatchers(
-                                        HttpMethod.DELETE,
-                                        "/api/applications/**"
-                                )
-                                .authenticated()
-
-
-                                // Catch-all rule.
-                                //
-                                // Any endpoint not explicitly configured
-                                // above requires authentication.
-                                .anyRequest()
-                                .authenticated()
+                        // Any endpoint not explicitly configured above
+                        // requires authentication.
+                        .anyRequest()
+                        .authenticated()
                 )
+//                        // ==============================
+//                        // AUTHENTICATION PROVIDER
+//                        // ==============================
 
-
-                // Register the custom AuthenticationProvider.
-                //
-                // This provider connects Spring Security's
-                // username/password authentication with
-                // CustomUserDetailsService and PasswordEncoder.
+//                        // Connects our custom AuthenticationProvider
+//                        // to Spring Security's filter chain.
                 .authenticationProvider(
                         authenticationProvider()
                 )
 
 
-                // Add the JWT filter before Spring Security's
-                // UsernamePasswordAuthenticationFilter.
-                //
-                // Flow:
-                //
-                // Request
-                //    ↓
-                // JwtAuthenticationFilter
-                //    ↓
-                // Validate JWT
-                //    ↓
-                // Set Authentication
-                //    ↓
-                // Authorization rules
+                // ==============================
+                // JWT AUTHENTICATION FILTER
+                // ==============================
+
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
+
                 );
 
-
-        // Build the configured SecurityFilterChain.
         return http.build();
     }
 
 
-    // Creates the AuthenticationProvider used for
-    // username/password authentication.
+    // ==============================
+    // AUTHENTICATION PROVIDER
+    // ==============================
+
+    // Handles username/password authentication.
+    //
+    // Login
+    //   ↓
+    // AuthenticationProvider
+    //   ↓
+    // CustomUserDetailsService
+    //   ↓
+    // UserRepository
+    //   ↓
+    // PasswordEncoder
+    //   ↓
+    // Authentication result
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
 
-        // DaoAuthenticationProvider performs authentication
-        // using a UserDetailsService and PasswordEncoder.
+//        Depriciated/Old Method
+//        DaoAuthenticationProvider provider =
+//                new DaoAuthenticationProvider();
+//
+//        provider.setUserDetailsService(
+//                customUserDetailsService
+//        );
+
         DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider();
+                new DaoAuthenticationProvider(
+                        customUserDetailsService
+                );
 
-
-        // Tell the provider how to find users.
-        //
-        // CustomUserDetailsService
-        //        ↓
-        // UserRepository
-        //        ↓
-        // findByEmail()
-        provider.setUserDetailsService(
-                customUserDetailsService
-        );
-
-
-        // Tell the provider how to verify passwords.
-        //
-        // Plain password
-        //       ↓
-        // BCrypt comparison
-        //       ↓
-        // Stored BCrypt hash
         provider.setPasswordEncoder(
                 passwordEncoder
         );
 
-
         return provider;
     }
 
-
-    // Exposes AuthenticationManager as a Spring Bean.
-    //
-    // AuthServiceImpl uses this during login:
-    //
-    // AuthenticationManager
-    //        ↓
-    // AuthenticationProvider
-    //        ↓
-    // CustomUserDetailsService
-    //        ↓
-    // PasswordEncoder
-    //        ↓
-    // Authentication result
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration)
-            throws Exception {
-
-        // Obtain the AuthenticationManager configured
-        // by Spring Security.
+            AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+
 }

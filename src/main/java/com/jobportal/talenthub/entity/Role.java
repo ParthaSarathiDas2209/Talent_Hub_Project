@@ -1,7 +1,5 @@
 package com.jobportal.talenthub.entity;
 
-// Defines the roles available in the TalentHub system.
-// The role determines what actions a user is authorized to perform.
 public enum Role {
 
     JOB_SEEKER,

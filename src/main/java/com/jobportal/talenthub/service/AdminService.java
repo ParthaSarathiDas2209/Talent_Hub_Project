@@ -3,6 +3,8 @@ package com.jobportal.talenthub.service;
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -27,7 +29,7 @@ public interface AdminService {
     // =========================================================
 
     // Get all jobs that are not soft-deleted.
-    List<JobResponseDto> getAllJobs();
+    Page<JobResponseDto> getAllJobs(Pageable pageable);
 
     // Get a specific job by ID.
     JobResponseDto getJobById(Long id);

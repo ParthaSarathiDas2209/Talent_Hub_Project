@@ -5,6 +5,8 @@ import com.jobportal.talenthub.dto.JobRequestDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.service.JobService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -134,14 +136,19 @@ public class JobController {
 
     // GET /api/jobs
     // Returns all jobs that are not soft-deleted.
+
+//    @GetMapping
+//    public ResponseEntity<List<JobResponseDto>> getAllJobs() {
+//
+//        return ResponseEntity.ok(
+//                jobService.getAllJobs()
+//        );
+//    }
+
     @GetMapping
-    public ResponseEntity<List<JobResponseDto>> getAllJobs() {
-
-        return ResponseEntity.ok(
-                jobService.getAllJobs()
-        );
+    public ResponseEntity<Page<JobResponseDto>> getAllJobs(Pageable pageable) {
+        return ResponseEntity.ok(jobService.getAllJobs(pageable));
     }
-
 
     // =========================================================
     // PARTIAL UPDATE JOB
@@ -169,4 +176,51 @@ public class JobController {
                 )
         );
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<JobResponseDto>> searchJobs(
+            @RequestParam String keyword) {
+        return ResponseEntity.ok(
+                jobService.searchJobs(keyword)
+        );
+    }
+
+
+    @GetMapping("/filter/location")
+    public ResponseEntity<Page<JobResponseDto>> filterByLocation(
+            @RequestParam String location, Pageable pageable) {
+        return ResponseEntity.ok(
+                jobService.filterByLocation(location, pageable));
+    }
+
+
+    @GetMapping("/filter/salary")
+    public ResponseEntity<Page<JobResponseDto>> filterBySalary(
+            @RequestParam Long minSalary,
+            @RequestParam Long maxSalary,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(
+                jobService.filterBySalary(
+                        minSalary, maxSalary, pageable
+                )
+        );
+    }
+
+    @GetMapping("/filter/company-title")
+    public ResponseEntity<Page<JobResponseDto>> filterByCompanyAndTitle(
+            @RequestParam String companyName,
+            @RequestParam String title,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(
+                jobService.filterByCompanyAndTitle(
+                        companyName,
+                        title,
+                        pageable
+                )
+        );
+    }
+
+
 }

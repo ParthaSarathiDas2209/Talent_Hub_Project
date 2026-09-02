@@ -3,6 +3,7 @@ package com.jobportal.talenthub.service.impl;
 import com.jobportal.talenthub.dto.JobPatchDto;
 import com.jobportal.talenthub.dto.JobRequestDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
+import com.jobportal.talenthub.dto.JobSeekerDashboardDto;
 import com.jobportal.talenthub.entity.*;
 import com.jobportal.talenthub.exception.AccessDeniedException;
 import com.jobportal.talenthub.exception.JobApplicationException;
@@ -11,6 +12,8 @@ import com.jobportal.talenthub.mapper.JobMapper;
 import com.jobportal.talenthub.repository.JobRepository;
 import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.JobService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -212,20 +215,18 @@ public class JobServiceImpl implements JobService {
     // GET ALL JOBS
     // =========================================================
 
-    @Override
-    public List<JobResponseDto> getAllJobs() {
-
-        // Fetch only jobs that have NOT been soft-deleted.
-        List<Job> jobs =
-                jobRepository.findAllByDeletedFalse();
-
-
-        // Convert each Job entity into JobResponseDto.
-        return jobs.stream()
-                .map(JobMapper::toResponseDto)
-                .toList();
-    }
-
+//    @Override
+//    public List<JobResponseDto> getAllJobs() {
+//
+//        // Fetch only jobs that have NOT been soft-deleted.
+//        List<Job> jobs =
+//                jobRepository.findAllByDeletedFalse();
+//
+//        // Convert each Job entity into JobResponseDto.
+//        return jobs.stream()
+//                .map(JobMapper::toResponseDto)
+//                .toList();
+//    }
 
     // =========================================================
     // PATCH / PARTIAL UPDATE
@@ -432,6 +433,42 @@ public class JobServiceImpl implements JobService {
 
         // Persist the soft-delete changes.
         jobRepository.save(job);
+    }
+
+    @Override
+    public List<JobResponseDto> searchJobs(String keyword) {
+        List<Job> jobs = jobRepository.searchJobs(keyword);
+        return jobs.stream()
+                .map(JobMapper::toResponseDto)
+                .toList();
+    }
+
+    @Override
+    public Page<JobResponseDto> getAllJobs(Pageable pageable) {
+        Page<Job> jobs = jobRepository.findAllByDeletedFalse(pageable);
+        return jobs.map(JobMapper::toResponseDto);
+    }
+
+    @Override
+    public Page<JobResponseDto> filterByLocation(String location, Pageable pageable) {
+        Page<Job> jobs = jobRepository.findByLocationContainingIgnoreCaseAndDeletedFalse(
+                location, pageable);
+        return jobs.map(JobMapper::toResponseDto);
+    }
+
+    @Override
+    public Page<JobResponseDto> filterBySalary(Long minSalary, Long maxSalary, Pageable pageable) {
+        Page<Job> jobs = jobRepository.findBySalaryGreaterThanEqualAndSalaryLessThanEqualAndDeletedFalse(
+                minSalary, maxSalary, pageable);
+        return jobs.map(JobMapper::toResponseDto);
+    }
+
+    @Override
+    public Page<JobResponseDto> filterByCompanyAndTitle(String companyName, String title, Pageable pageable) {
+        Page<Job> jobs = jobRepository.findByCompanyNameContainingIgnoreCaseAndTitleContainingIgnoreCaseAndDeletedFalse(
+                companyName, title, pageable
+        );
+        return jobs.map(JobMapper::toResponseDto);
     }
 
 

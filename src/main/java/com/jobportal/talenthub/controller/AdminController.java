@@ -4,6 +4,8 @@ import com.jobportal.talenthub.dto.ApplicationResponseDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 import com.jobportal.talenthub.service.AdminService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -71,14 +73,18 @@ public class AdminController {
 
     // GET /api/admin/jobs
     // Fetch all jobs that are not soft-deleted.
+//    @GetMapping("/jobs")
+//    public ResponseEntity<List<JobResponseDto>> getAllJobs() {
+//
+//        return ResponseEntity.ok(
+//                adminService.getAllJobs()
+//        );
+//    }
+
     @GetMapping("/jobs")
-    public ResponseEntity<List<JobResponseDto>> getAllJobs() {
-
-        return ResponseEntity.ok(
-                adminService.getAllJobs()
-        );
+    public ResponseEntity<Page<JobResponseDto>> getAllJobs(Pageable pageable) {
+        return ResponseEntity.ok(adminService.getAllJobs(pageable));
     }
-
 
     // GET /api/admin/jobs/{id}
     // Fetch a specific job by ID.

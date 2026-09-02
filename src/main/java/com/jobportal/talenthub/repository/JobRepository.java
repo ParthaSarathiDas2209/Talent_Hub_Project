@@ -1,51 +1,60 @@
 package com.jobportal.talenthub.repository;
-// Repository layer for Job database operations.
 
 import com.jobportal.talenthub.entity.Job;
-// Job entity managed by this repository.
-
+import com.jobportal.talenthub.entity.JobStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-// Provides built-in CRUD operations such as:
-// save(), findById(), findAll(), delete(), existsById(), etc.
-
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-// Marks this interface as a repository component.
 
 import java.util.List;
-// Used when returning multiple jobs.
-
 import java.util.Optional;
-// Used when a job may or may not be found.
+
 
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long> {
-// JobRepository manages:
-// Job -> entity
-// Long -> Job primary-key type.
-//
-// JpaRepository automatically provides the basic database operations.
-// We only define custom queries needed by TalentHub.
 
+//    List<Job> findAllByDeletedFalse();
 
-    List<Job> findAllByDeletedFalse();
-    // Returns only jobs that have NOT been soft-deleted.
-    //
-    // Conceptually:
-    // SELECT * FROM jobs WHERE deleted = false
-    //
-    // Used when displaying the normal list of available jobs.
-    //
-    // Important because TalentHub uses SOFT DELETE.
-
+    Page<Job> findAllByDeletedFalse(Pageable pageable);
 
     Optional<Job> findByIdAndDeletedFalse(Long id);
-    // Finds a job by ID only if it has not been soft-deleted.
-    //
-    // Conceptually:
-    // SELECT * FROM jobs
-    // WHERE id = ? AND deleted = false
-    //
-    // Useful when getting/updating/deleting a job that should
-    // still be considered active.
 
+    @Query("""
+            SELECT j
+            FROM Job j
+            WHERE j.deleted = false
+            AND(
+                    LOWER(j.title) LIKE CONCAT ('%' , LOWER(:keyword), '%')
+                                OR LOWER(j.description) LIKE CONCAT('%', LOWER(:keyword), '%')
+                                OR LOWER(j.companyName) LIKE CONCAT('%', LOWER(:keyword), '%')
+                                OR LOWER(j.location) LIKE CONCAT('%', LOWER(:keyword), '%')
+            )
+            """)
+    List<Job> searchJobs(@Param("keyword") String keyword);
+
+    Page<Job> findByLocationContainingIgnoreCaseAndDeletedFalse(
+            String location, Pageable pageable
+    );
+
+    Page<Job> findByCompanyNameContainingIgnoreCaseAndTitleContainingIgnoreCaseAndDeletedFalse(
+            String companyName, String title, Pageable pageable);
+
+    Page<Job> findBySalaryGreaterThanEqualAndSalaryLessThanEqualAndDeletedFalse(
+            Long minSalary, Long maxSalary, Pageable pageable);
+
+
+    Long countByDeletedTrue();
+    
+    Long countByRecruiterIdAndDeletedFalse(Long recruiterId);
+
+    Long countByRecruiterIdAndStatusAndDeletedFalse(
+            Long recruiterId, JobStatus status
+    );
+
+    Long countByDeletedFalse();
+
+    Long countByStatusAndDeletedFalse(JobStatus status);
 }

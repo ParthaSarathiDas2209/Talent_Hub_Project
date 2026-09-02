@@ -12,6 +12,8 @@ import com.jobportal.talenthub.repository.ApplicationRepository;
 import com.jobportal.talenthub.repository.JobRepository;
 import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.ApplicationService;
+import com.jobportal.talenthub.service.EmailService;
+import com.jobportal.talenthub.service.NotificationService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,17 +31,21 @@ public class ApplicationServiceImpl implements ApplicationService {
     // Repository used to find jobs.
     private final JobRepository jobRepository;
 
+    private final EmailService emailService;
+    private final NotificationService notificationService;
 
     // Constructor Injection:
     // Spring injects the required dependencies.
     public ApplicationServiceImpl(
             ApplicationRepository applicationRepository,
             UserRepository userRepository,
-            JobRepository jobRepository) {
+            JobRepository jobRepository, EmailService emailService, NotificationService notificationService) {
 
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
+        this.emailService = emailService;
+        this.notificationService = notificationService;
     }
 
 
@@ -458,6 +464,13 @@ public class ApplicationServiceImpl implements ApplicationService {
             );
         }
 
+        // Requested status must not be null.
+        if (applicationStatus == null) {
+
+            throw new JobApplicationException(
+                    "Application status cannot be null."
+            );
+        }
 
         // A status update must actually change the status.
         if (application.getStatus() == applicationStatus) {
@@ -466,15 +479,6 @@ public class ApplicationServiceImpl implements ApplicationService {
                     "Application is already in "
                             + applicationStatus
                             + " status."
-            );
-        }
-
-
-        // Requested status must not be null.
-        if (applicationStatus == null) {
-
-            throw new JobApplicationException(
-                    "Application status cannot be null."
             );
         }
 
@@ -495,6 +499,15 @@ public class ApplicationServiceImpl implements ApplicationService {
         Application updatedApplication =
                 applicationRepository.save(application);
 
+//+
+
+        notificationService.createNotification(
+                application.getUser(),
+                "Your application for "
+                        + application.getJob().getTitle()
+                        + " has been updated to "
+                        + applicationStatus
+        );
 
         // Return the updated application as a DTO.
         return ApplicationMapper

@@ -1,11 +1,8 @@
 package com.jobportal.talenthub.entity;
 
-// Represents the current account status of a TalentHub user.
-// UserStatus can be used for account lifecycle and access control.
 public enum UserStatus {
 
-    ACTIVE,
-    // User account is active and can normally use the application.
+    ACTIVE, // User account is active and can normally use the application.
 
     INACTIVE,
     // User account is currently inactive.

@@ -25,17 +25,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // =========================================================
+    // 404 - RESOURCE NOT FOUND
+    // =========================================================
+
     // Handles ResourceNotFoundException.
-    //
-    // Example:
-    //
-    // UserService
-    //     ↓
-    // User not found
-    //     ↓
-    // throw ResourceNotFoundException
-    //     ↓
-    // HTTP 404 NOT_FOUND
     //
     // Used when the requested resource does not exist.
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -48,20 +42,14 @@ public class GlobalExceptionHandler {
     }
 
 
+    // =========================================================
+    // 403 - ACCESS DENIED
+    // =========================================================
+
     // Handles AccessDeniedException.
     //
     // Used when the user is authenticated
     // but does not have permission to perform the operation.
-    //
-    // Example:
-    //
-    // JOB_SEEKER
-    //     ↓
-    // Try to update recruiter-only application status
-    //     ↓
-    // AccessDeniedException
-    //     ↓
-    // HTTP 403 FORBIDDEN
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<String> handleAccessDeniedException(
             AccessDeniedException ex) {
@@ -72,23 +60,79 @@ public class GlobalExceptionHandler {
     }
 
 
+    // =========================================================
+    // 409 - DUPLICATE APPLICATION
+    // =========================================================
+
+    // Handles DuplicateApplicationException.
+    //
+    // Used when the user tries to create
+    // a duplicate application.
+    @ExceptionHandler(DuplicateApplicationException.class)
+    public ResponseEntity<String> handleDuplicateApplicationException(
+            DuplicateApplicationException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ex.getMessage());
+    }
+
+
+    // =========================================================
+    // 401 - INVALID CREDENTIALS
+    // =========================================================
+
+    // Handles InvalidCredentialsException.
+    //
+    // Used when authentication credentials are invalid.
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<String> handleInvalidCredentialsException(
+            InvalidCredentialsException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ex.getMessage());
+    }
+
+
+    // =========================================================
+    // 400 - BUSINESS RULE VIOLATION
+    // =========================================================
+
+    // Handles JobApplicationException.
+    //
+    // Used when the request violates
+    // an application business rule.
+    @ExceptionHandler(JobApplicationException.class)
+    public ResponseEntity<String> handleJobApplicationException(
+            JobApplicationException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ex.getMessage());
+    }
+
+
+    // =========================================================
+    // 500 - UNEXPECTED SERVER ERROR
+    // =========================================================
+
     // Catch-all handler for unexpected exceptions.
     //
     // If an exception is not handled by one of the
-    // more specific @ExceptionHandler methods above,
-    // this method handles it.
+    // specific handlers above, this method handles it.
     //
-    // HTTP 500 means an unexpected server-side error occurred.
+    // HTTP 500 means an unexpected server-side
+    // error occurred.
     //
-    // Important:
-    // In a production application, we normally should NOT
-    // expose internal exception details directly to the client.
+    // We do not expose the internal exception message
+    // to the client.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGlobalException(
             Exception ex) {
 
         return new ResponseEntity<>(
-                "Something went wrong!: " + ex.getMessage(),
+                "Something went wrong. Please try again later.",
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }

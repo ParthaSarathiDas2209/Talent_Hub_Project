@@ -12,6 +12,8 @@ import com.jobportal.talenthub.repository.ApplicationRepository;
 import com.jobportal.talenthub.repository.JobRepository;
 import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.AdminService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,18 +22,11 @@ import java.util.List;
 @Service
 public class AdminServiceImpl implements AdminService {
 
-    // Repository used by the admin to manage users.
     private final UserRepository userRepository;
-
-    // Repository used by the admin to manage jobs.
     private final JobRepository jobRepository;
-
-    // Repository used by the admin to manage applications.
     private final ApplicationRepository applicationRepository;
 
 
-    // Constructor Injection:
-    // Spring provides all required repositories.
     public AdminServiceImpl(
             UserRepository userRepository,
             JobRepository jobRepository,
@@ -46,7 +41,7 @@ public class AdminServiceImpl implements AdminService {
     // =========================================================
     // GET ALL USERS
     // =========================================================
-    //
+
     // Admin can view all users that are not soft-deleted.
 
     @Override
@@ -123,25 +118,29 @@ public class AdminServiceImpl implements AdminService {
         userRepository.save(user);
     }
 
-
     // =========================================================
     // GET ALL JOBS
     // =========================================================
 
+//    @Override
+//    public List<JobResponseDto> getAllJobs() {
+//
+//        // Fetch only jobs that have not been soft-deleted.
+//        List<Job> jobs =
+//                jobRepository.findAllByDeletedFalse();
+//
+//        // Convert Job entities into response DTOs.
+//        return jobs
+//                .stream()
+//                .map(JobMapper::toResponseDto)
+//                .toList();
+//    }
+
     @Override
-    public List<JobResponseDto> getAllJobs() {
-
-        // Fetch only jobs that have not been soft-deleted.
-        List<Job> jobs =
-                jobRepository.findAllByDeletedFalse();
-
-        // Convert Job entities into response DTOs.
-        return jobs
-                .stream()
-                .map(JobMapper::toResponseDto)
-                .toList();
+    public Page<JobResponseDto> getAllJobs(Pageable pageable) {
+        Page<Job> jobs = jobRepository.findAllByDeletedFalse(pageable);
+        return jobs.map(JobMapper::toResponseDto);
     }
-
 
     // =========================================================
     // GET JOB BY ID
@@ -167,7 +166,7 @@ public class AdminServiceImpl implements AdminService {
     // =========================================================
     // DELETE JOB
     // =========================================================
-    //
+
     // Admin removes the job logically using soft delete.
 
     @Override
@@ -200,7 +199,7 @@ public class AdminServiceImpl implements AdminService {
     // =========================================================
     // GET ALL APPLICATIONS
     // =========================================================
-    //
+
     // Admin can view applications across the entire system.
 
     @Override
@@ -243,7 +242,7 @@ public class AdminServiceImpl implements AdminService {
     // =========================================================
     // DELETE APPLICATION
     // =========================================================
-    //
+
     // Admin performs a soft delete.
     // The database record remains available for historical
     // or auditing purposes.
@@ -274,7 +273,7 @@ public class AdminServiceImpl implements AdminService {
         applicationRepository.save(application);
 
         // Physical deletion is intentionally not used.
-        //
+
         // applicationRepository.delete(application);
     }
 }
