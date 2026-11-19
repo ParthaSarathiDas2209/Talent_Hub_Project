@@ -3,7 +3,6 @@ package com.jobportal.talenthub.service.impl;
 import com.jobportal.talenthub.dto.JobPatchDto;
 import com.jobportal.talenthub.dto.JobRequestDto;
 import com.jobportal.talenthub.dto.JobResponseDto;
-import com.jobportal.talenthub.dto.JobSeekerDashboardDto;
 import com.jobportal.talenthub.entity.*;
 import com.jobportal.talenthub.exception.AccessDeniedException;
 import com.jobportal.talenthub.exception.JobApplicationException;
@@ -405,6 +404,17 @@ public class JobServiceImpl implements JobService {
                                 )
                         );
 
+        if (loggedInUser.getRole() != Role.RECRUITER) {
+            throw new AccessDeniedException(
+                    "Only recruiters can delete jobs."
+            );
+        }
+
+        if (loggedInUser.getStatus() != UserStatus.ACTIVE) {
+            throw new AccessDeniedException(
+                    "Your account is not active."
+            );
+        }
 
         // Ownership check:
         // Only the recruiter who owns the job

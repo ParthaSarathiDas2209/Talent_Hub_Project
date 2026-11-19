@@ -1,6 +1,7 @@
 package com.jobportal.talenthub.service.impl;
 
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
+import com.jobportal.talenthub.dto.ChangeRoleRequest;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 import com.jobportal.talenthub.entity.*;
@@ -115,6 +116,19 @@ public class AdminServiceImpl implements AdminService {
         user.setStatus(UserStatus.DEACTIVATED);
 
         // Save the soft-delete changes.
+        userRepository.save(user);
+    }
+
+    @Override
+    public void changeUserRole(Long id, ChangeRoleRequest roleRequest) {
+        User user = userRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found with id : " + id
+                        )
+                );
+
+        user.setRole(roleRequest.role());
         userRepository.save(user);
     }
 

@@ -120,25 +120,25 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/api/jobs/**"
                         )
-                        .hasRole("RECRUITER")
+                        .hasAnyRole("RECRUITER", "ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/jobs/**"
                         )
-                        .hasRole("RECRUITER")
+                        .hasAnyRole("RECRUITER", "ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/jobs/**"
                         )
-                        .hasRole("RECRUITER")
+                        .hasAnyRole("RECRUITER", "ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/jobs/**"
                         )
-                        .hasRole("RECRUITER")
+                        .hasAnyRole("RECRUITER", "ADMIN")
 
 
                         // ==============================
@@ -214,14 +214,41 @@ public class SecurityConfig {
                         // USER ENDPOINTS
                         // ==============================
 
-                        // Authenticated users can access user endpoints.
-                        // Ownership and business rules are handled
-                        // in the service layer.
                         .requestMatchers(
-                                "/api/users/**"
+                                HttpMethod.GET,
+                                "/api/users"
+                        )
+                        .hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/users/*"
                         )
                         .authenticated()
 
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/users/*"
+                        )
+                        .authenticated()
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/users/*"
+                        )
+                        .authenticated()
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/users/*"
+                        )
+                        .hasAnyRole("ADMIN", "RECRUITER")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/users"
+                        )
+                        .hasRole("ADMIN")
 
                         // ==============================
                         // DEFAULT RULE

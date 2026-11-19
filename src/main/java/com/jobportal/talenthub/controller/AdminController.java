@@ -1,6 +1,7 @@
 package com.jobportal.talenthub.controller;
 
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
+import com.jobportal.talenthub.dto.ChangeRoleRequest;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 import com.jobportal.talenthub.service.AdminService;
@@ -66,6 +67,16 @@ public class AdminController {
         );
     }
 
+    @PatchMapping("/users/{id}/role")
+    public ResponseEntity<String> changeUserRole(
+            @PathVariable Long id,
+            @RequestBody ChangeRoleRequest roleRequest) {
+        adminService.changeUserRole(id, roleRequest);
+
+        return ResponseEntity.ok(
+                "User role changed Successfully : " + id
+        );
+    }
 
     // ==========================================================
     // JOB MANAGEMENT

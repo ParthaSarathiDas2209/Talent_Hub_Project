@@ -1,6 +1,7 @@
 package com.jobportal.talenthub.service;
 
 import com.jobportal.talenthub.dto.ApplicationResponseDto;
+import com.jobportal.talenthub.dto.ChangeRoleRequest;
 import com.jobportal.talenthub.dto.JobResponseDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,8 @@ public interface AdminService {
     // Soft-delete a user by ID.
     void deleteUserById(Long id);
 
+    // Change the role of an existing user.
+    void changeUserRole(Long id, ChangeRoleRequest roleRequest);
 
     // =========================================================
     // JOB MANAGEMENT

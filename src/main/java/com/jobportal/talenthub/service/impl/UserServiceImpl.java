@@ -3,13 +3,17 @@ package com.jobportal.talenthub.service.impl;
 import com.jobportal.talenthub.dto.UserPatchDto;
 import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
+import com.jobportal.talenthub.entity.Role;
 import com.jobportal.talenthub.entity.User;
 import com.jobportal.talenthub.entity.UserStatus;
+import com.jobportal.talenthub.exception.AccessDeniedException;
 import com.jobportal.talenthub.exception.JobApplicationException;
 import com.jobportal.talenthub.exception.ResourceNotFoundException;
 import com.jobportal.talenthub.mapper.UserMapper;
 import com.jobportal.talenthub.repository.UserRepository;
 import com.jobportal.talenthub.service.UserService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -59,6 +63,8 @@ public class UserServiceImpl implements UserService {
         User user = UserMapper.toEntity(userRequestDto);
 
 
+        user.setRole(Role.JOB_SEEKER);
+
         // Encode the plain-text password before persistence.
         // The database must never contain the plain password.
         user.setPassword(
@@ -104,6 +110,8 @@ public class UserServiceImpl implements UserService {
                 );
 
 
+        verifyUserOwnership(user);
+
         // Check whether the new email already belongs to
         // a different user.
         //
@@ -129,10 +137,6 @@ public class UserServiceImpl implements UserService {
                         userRequestDto.password()
                 )
         );
-
-
-        // Update the user's role.
-        user.setRole(userRequestDto.role());
 
 
         // Save the modified entity.
@@ -161,6 +165,8 @@ public class UserServiceImpl implements UserService {
                         )
                 );
 
+
+        verifyUserOwnership(user);
 
         // Update first name only when the client provides it.
         if (userPatchDto.firstName() != null) {
@@ -213,12 +219,12 @@ public class UserServiceImpl implements UserService {
 
 
         // Update role only when supplied.
-        if (userPatchDto.role() != null) {
-
-            user.setRole(
-                    userPatchDto.role()
-            );
-        }
+//        if (userPatchDto.role() != null) {
+//
+//            user.setRole(
+//                    userPatchDto.role()
+//            );
+//        }
 
 
         // Save the partially modified entity.
@@ -268,6 +274,8 @@ public class UserServiceImpl implements UserService {
                 );
 
 
+        verifyUserCanView(user);
+
         // Convert entity into a safe response DTO.
         return UserMapper.toResponseDto(user);
     }
@@ -288,6 +296,28 @@ public class UserServiceImpl implements UserService {
                         )
                 );
 
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin = authentication
+                .getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean isRecruiter = authentication
+                .getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_RECRUITER"));
+
+        if (!isAdmin && !isRecruiter) {
+            throw new AccessDeniedException(
+                    "You are not authorized to delete this user."
+            );
+        }
 
         // Defensive check in case this method is called directly
         // without the repository's deleted=false condition.
@@ -297,7 +327,6 @@ public class UserServiceImpl implements UserService {
                     "User has already been deleted"
             );
         }
-
 
         // Soft delete:
         // Keep the database row but mark the user as deleted.
@@ -317,35 +346,41 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    private void verifyUserOwnership(User user) {
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
 
-    // =========================================================
-    // FUTURE IMPROVEMENTS
-    // =========================================================
+        String authenticatedEmail =
+                authentication.getName();
 
-    // 1. PATCH validation refinement:
-    //    UserPatchDto currently allows null fields, which is correct
-    //    for PATCH, but supplied non-null values should still satisfy
-    //    appropriate validation rules.
-    //
-    // 2. Ownership/security:
-    //    The service currently accepts a user ID.
-    //    Whether a normal user may update/delete that ID should be
-    //    controlled by the security/controller/business layer.
-    //
-    // 3. Role changes:
-    //    Changing ROLE_ADMIN/RECRUITER/JOB_SEEKER is a sensitive operation.
-    //    In a production application, normal users should generally
-    //    not be allowed to change their own role.
-    //
-    // 4. Password:
-    //    Password is correctly encoded before save.
-    //
-    // 5. updatedAt:
-    //    User already has @UpdateTimestamp, so Hibernate automatically
-    //    updates updatedAt when the entity is modified.
-    //
-    // 6. Soft delete:
-    //    The record remains in the database.
-    //    findAllByDeletedFalse() and findByIdAndDeletedFalse()
-    //    hide deleted users from normal operations.
+        if (!user.getEmail().equals(authenticatedEmail)) {
+            throw new JobApplicationException(
+                    "You are not authorized to modify this user."
+            );
+        }
+
+    }
+
+    private void verifyUserCanView(User user) {
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN"))) {
+            return;
+        }
+
+        String authenticatedEmail = authentication.getName();
+
+        if (!user.getEmail().equals(authenticatedEmail)) {
+            throw new AccessDeniedException(
+                    "You are not authorized to view this user."
+            );
+        }
+    }
 }

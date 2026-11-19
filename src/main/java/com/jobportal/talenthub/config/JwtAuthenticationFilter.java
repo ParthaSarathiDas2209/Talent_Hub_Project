@@ -2,6 +2,7 @@ package com.jobportal.talenthub.config;
 
 import com.jobportal.talenthub.service.CustomUserDetailsService;
 import com.jobportal.talenthub.service.JwtService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,34 +44,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String jwt = authHeader.substring(7);
-        String email = jwtService.extractEmail(jwt);
 
+        try {
+            String email = jwtService.extractEmail(jwt);
 
-        if (email != null &&
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication() == null
-        ) {
+            if (email != null &&
+                    SecurityContextHolder
+                            .getContext()
+                            .getAuthentication() == null
+            ) {
 
-            UserDetails userDetails =
-                    userDetailsService
-                            .loadUserByUsername(
-                                    email
+                UserDetails userDetails =
+                        userDetailsService
+                                .loadUserByUsername(
+                                        email
+                                );
+
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
                             );
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                    SecurityContextHolder
+                            .getContext()
+                            .setAuthentication(authentication);
 
-                SecurityContextHolder
-                        .getContext()
-                        .setAuthentication(authentication);
-                
+                }
             }
+        } catch (JwtException exception) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
 
         filterChain.doFilter(request, response);

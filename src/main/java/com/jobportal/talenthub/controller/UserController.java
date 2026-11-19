@@ -152,8 +152,8 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<UserResponseDto> patchUser(
             @PathVariable Long id,
-            @RequestBody UserPatchDto userPatchDto) {
-
+            @Valid @RequestBody UserPatchDto userPatchDto) {
+        
         return ResponseEntity.ok(
                 userService.patchUser(id, userPatchDto)
         );

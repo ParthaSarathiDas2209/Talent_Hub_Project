@@ -4,6 +4,7 @@ import com.jobportal.talenthub.dto.AuthResponseDto;
 import com.jobportal.talenthub.dto.LoginRequestDto;
 import com.jobportal.talenthub.dto.UserRequestDto;
 import com.jobportal.talenthub.dto.UserResponseDto;
+import com.jobportal.talenthub.entity.Role;
 import com.jobportal.talenthub.entity.User;
 import com.jobportal.talenthub.entity.UserStatus;
 import com.jobportal.talenthub.exception.InvalidCredentialsException;
@@ -87,6 +88,8 @@ public class AuthServiceImpl implements AuthService {
         // into a User entity.
         User user = UserMapper.toEntity(userRequestDto);
 
+        // Server decides the initial role
+        user.setRole(Role.JOB_SEEKER);
 
         // Never store a plain-text password.
         // BCrypt hashes the password before it reaches the database.

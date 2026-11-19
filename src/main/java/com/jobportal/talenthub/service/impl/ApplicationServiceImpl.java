@@ -346,13 +346,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 
         // Prevent repeated deletion/withdrawal.
-        if (application.isDeleted()) {
+//        if (application.isDeleted()) {
+//
+//            throw new JobApplicationException(
+//                    "This application has been removed and is no longer accepting applications."
+//            );
+//        }
 
+        if (application.getStatus() != ApplicationStatus.APPLIED) {
             throw new JobApplicationException(
-                    "This application has been removed and is no longer accepting applications."
+                    "Only Applications with APPLIED status can be withdrawn."
             );
         }
-
 
         // Mark the application as WITHDRAWN.
         application.setStatus(ApplicationStatus.WITHDRAWN);
@@ -623,7 +628,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 
             case ACCEPTED, REJECTED, WITHDRAWN -> {
-
                 // These are terminal states.
                 // No further status transition is allowed.
                 throw new JobApplicationException(
